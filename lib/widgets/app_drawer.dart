@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
 import '../screens/warranty_list_screen.dart';
 import '../screens/about_screen.dart';
+import '../screens/sales_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -91,6 +92,32 @@ class AppDrawer extends StatelessWidget {
                   selectedIcon: Icons.dashboard,
                   label: 'Dashboard',
                   index: 0,
+                  context: context,
+                ),
+
+                // Sales Section - Moved here before Inventory
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'SALES',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _buildDrawerItem(
+                  icon: Icons.point_of_sale_outlined,
+                  selectedIcon: Icons.point_of_sale,
+                  label: 'New Sale',
+                  index: 7,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SalesScreen()),
+                    );
+                  },
                   context: context,
                 ),
 
@@ -244,6 +271,7 @@ class AppDrawer extends StatelessWidget {
     required String label,
     required int index,
     required BuildContext context,
+    Function()? onTap,
   }) {
     final isSelected = selectedIndex == index;
     return Container(
@@ -271,10 +299,7 @@ class AppDrawer extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        onTap: () {
-          onItemTapped(index);
-          Navigator.pop(context);
-        },
+        onTap: onTap,
       ),
     );
   }

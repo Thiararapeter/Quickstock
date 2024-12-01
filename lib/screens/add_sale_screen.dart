@@ -73,7 +73,94 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
   }
 
   Future<void> _selectItem() async {
-    // TODO: Implement item selection dialog
+    // Show dialog to choose between Product or Part
+    final itemType = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Item Type'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.inventory_2),
+                title: const Text('Product'),
+                onTap: () => Navigator.pop(context, 'product'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.build),
+                title: const Text('Part'),
+                onTap: () => Navigator.pop(context, 'part'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (itemType == null) return;
+
+    try {
+      List<InventoryItem> items;
+      if (itemType == 'product') {
+        items = await SupabaseDatabase.instance.getProducts();
+      } else {
+        items = await SupabaseDatabase.instance.getUnattachedProducts();
+      }
+
+      if (!mounted) return;
+
+      final selectedItem = await showDialog<InventoryItem>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Select ${itemType == 'product' ? 'Product' : 'Part'}'),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 300,
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ListTile(
+                    leading: Icon(
+                      itemType == 'product' ? Icons.inventory_2 : Icons.build,
+                      color: Colors.blue,
+                    ),
+                    title: Text(item.name),
+                    subtitle: Text(
+                      'Available: ${item.quantity} | Price: KSH ${item.sellingPrice}',
+                    ),
+                    onTap: () => Navigator.pop(context, item),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (selectedItem != null) {
+        setState(() {
+          _selectedItem = selectedItem;
+          _calculateTotal();
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading items: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _saveSale() async {
@@ -150,12 +237,45 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      _selectedItem!.name,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _selectedItem!.name,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _selectedItem!.category == 'Parts'
+                                                ? Colors.blue.shade100
+                                                : Colors.green.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: _selectedItem!.category == 'Parts'
+                                                  ? Colors.blue
+                                                  : Colors.green,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _selectedItem!.category == 'Parts'
+                                                ? 'Part'
+                                                : 'Product',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: _selectedItem!.category == 'Parts'
+                                                  ? Colors.blue
+                                                  : Colors.green,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     Text(
                                       'Available: ${_selectedItem!.quantity}',

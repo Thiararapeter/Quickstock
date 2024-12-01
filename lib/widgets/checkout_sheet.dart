@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/sale.dart';
 import '../models/cart_item.dart';
 import '../services/supabase_database.dart';
 import '../screens/sales_screen.dart';
+import 'sale_receipt.dart';
 
 class CheckoutSheet extends StatefulWidget {
   final List<CartItem> cart;
@@ -22,8 +24,18 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   final _customerNameController = TextEditingController();
   final _customerPhoneController = TextEditingController();
   final _notesController = TextEditingController();
+  final _transactionCodeController = TextEditingController();
   String _paymentMethod = 'Mobile Money';
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _transactionCodeController.dispose();
+    _customerNameController.dispose();
+    _customerPhoneController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   double get _totalAmount =>
       widget.cart.fold(0, (sum, item) => sum + (item.item.sellingPrice * item.quantity));
@@ -31,47 +43,97 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   Future<void> _completeSale() async {
     if (widget.cart.isEmpty) return;
 
+    if (_paymentMethod == 'Mobile Money' && _transactionCodeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter the transaction code'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      final saleDate = DateTime.now();
+      
+      await SupabaseDatabase.instance.supabase.rpc('begin_transaction');
+
+      final receiptData = {
+        'total_amount': _totalAmount,
+        'customer_name': _customerNameController.text.trim(),
+        'customer_phone': _customerPhoneController.text.trim(),
+        'payment_method': _paymentMethod,
+        'transaction_code': _paymentMethod == 'Mobile Money' ? _transactionCodeController.text.trim() : null,
+        'sale_date': saleDate.toIso8601String(),
+        'notes': _notesController.text.trim(),
+      };
+
+      final receiptResponse = await SupabaseDatabase.instance.supabase
+          .from('receipts')
+          .insert(receiptData)
+          .select()
+          .single();
+
+      final receiptId = receiptResponse['id'];
+      final receiptNumber = receiptResponse['receipt_number'];
+
       for (final cartItem in widget.cart) {
         final sale = Sale(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
           itemId: cartItem.item.id,
           itemName: cartItem.item.name,
           category: cartItem.item.category,
           quantitySold: cartItem.quantity,
           sellingPrice: cartItem.item.sellingPrice,
           totalPrice: cartItem.item.sellingPrice * cartItem.quantity,
-          saleDate: DateTime.now(),
+          saleDate: saleDate,
           customerName: _customerNameController.text.trim(),
           customerPhone: _customerPhoneController.text.trim(),
           paymentMethod: _paymentMethod,
+          transactionCode: _paymentMethod == 'Mobile Money' ? _transactionCodeController.text.trim() : null,
           notes: _notesController.text.trim(),
+          receiptId: receiptId,
         );
 
         await SupabaseDatabase.instance.addSale(sale);
       }
 
-      widget.onSuccess();
+      await SupabaseDatabase.instance.supabase.rpc('commit_transaction');
+
       if (mounted) {
         Navigator.pop(context);
+        
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => SaleReceipt(
+            cart: widget.cart,
+            customerName: _customerNameController.text.trim(),
+            customerPhone: _customerPhoneController.text.trim(),
+            paymentMethod: _paymentMethod,
+            receiptNumber: receiptNumber,
+            saleDate: saleDate,
+          ),
+        );
+
+        widget.onSuccess();
+      }
+    } catch (e) {
+      await SupabaseDatabase.instance.supabase.rpc('rollback_transaction');
+      
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sale completed successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('Error completing sale: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error completing sale: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -128,10 +190,27 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
-                      setState(() => _paymentMethod = value);
+                      setState(() {
+                        _paymentMethod = value;
+                        if (value != 'Mobile Money') {
+                          _transactionCodeController.clear();
+                        }
+                      });
                     }
                   },
                 ),
+                if (_paymentMethod == 'Mobile Money') ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _transactionCodeController,
+                    decoration: const InputDecoration(
+                      labelText: 'Transaction Code *',
+                      border: OutlineInputBorder(),
+                      helperText: 'Enter the M-PESA transaction code',
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 TextField(
                   controller: _notesController,

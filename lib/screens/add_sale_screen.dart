@@ -181,8 +181,25 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
         return;
       }
 
+      // First create a receipt
+      final receiptData = {
+        'total_amount': _selectedItem!.sellingPrice * quantity,
+        'customer_name': _customerNameController.text.trim(),
+        'customer_phone': _customerPhoneController.text.trim(),
+        'payment_method': _paymentMethod,
+        'sale_date': _saleDate.toIso8601String(),
+        'notes': _notesController.text.trim(),
+      };
+
+      final receiptResponse = await SupabaseDatabase.instance.supabase
+          .from('receipts')
+          .insert(receiptData)
+          .select()
+          .single();
+
+      final receiptId = receiptResponse['id'];
+
       final newSale = Sale(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
         itemId: _selectedItem!.id,
         itemName: _selectedItem!.name,
         category: _selectedItem!.category,
@@ -194,6 +211,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
         customerPhone: _customerPhoneController.text.trim(),
         paymentMethod: _paymentMethod,
         notes: _notesController.text.trim(),
+        receiptId: receiptId,
       );
 
       await SupabaseDatabase.instance.addSale(newSale);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/cart_item.dart';
-import '../widgets/checkout_sheet.dart';
 
 class CartScreen extends StatefulWidget {
   final List<CartItem> cart;
@@ -92,9 +91,7 @@ class _CartScreenState extends State<CartScreen> {
                                       TextButton(
                                         onPressed: () {
                                           Navigator.pop(context);
-                                          if (widget.cart.isNotEmpty && index < widget.cart.length) {
-                                            widget.onRemoveItem(index);
-                                          }
+                                          widget.onRemoveItem(index);
                                         },
                                         style: TextButton.styleFrom(
                                           foregroundColor: Colors.red,
@@ -121,9 +118,10 @@ class _CartScreenState extends State<CartScreen> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.remove),
-                                    onPressed: cartItem.quantity > 1
+                                    onPressed: cartItem.quantity > 1 
                                         ? () => widget.onUpdateQuantity(index, -1)
                                         : null,
+                                    color: Colors.red,
                                   ),
                                   Container(
                                     constraints: const BoxConstraints(minWidth: 40),
@@ -141,6 +139,7 @@ class _CartScreenState extends State<CartScreen> {
                                     onPressed: cartItem.quantity < cartItem.item.quantity
                                         ? () => widget.onUpdateQuantity(index, 1)
                                         : null,
+                                    color: Colors.green,
                                   ),
                                 ],
                               ),

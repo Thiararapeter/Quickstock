@@ -7,12 +7,17 @@ import '../models/asset.dart';
 import '../models/expense.dart';
 import '../models/warranty.dart';
 import '../models/sale.dart';
+import 'package:uuid/uuid.dart';
+import '../models/pos_settings.dart';
 
 class SupabaseDatabase {
   static final SupabaseDatabase instance = SupabaseDatabase._init();
   static final _supabase = Supabase.instance.client;
 
   SupabaseDatabase._init();
+
+  // Add this getter
+  SupabaseClient get supabase => _supabase;
 
   // Categories methods
   Future<List<String>> getCategories() async {
@@ -60,6 +65,7 @@ class SupabaseDatabase {
     try {
       developer.log('Inserting new item: ${item.id}');
       final itemData = item.toMap();
+      itemData['id'] = const Uuid().v4();
       
       // Allow items to have "Parts" category, but validate other categories exist
       if (item.category != 'Parts') {
@@ -1199,23 +1205,33 @@ class SupabaseDatabase {
       final newQuantity = item.quantity - sale.quantitySold;
       if (newQuantity < 0) throw Exception('Not enough items in stock');
       
-      // Start a transaction
-      await _supabase.rpc('begin_transaction');
+      // Format the sale data with proper UUID
+      final saleData = sale.toJson();
+      
+      // Generate a proper UUID for the sale ID
+      final saleId = const Uuid().v4();
+      saleData['id'] = saleId;
+      
+      print('Inserting sale data: $saleData'); // For debugging
+      
+      // Update inventory and record sale in a single transaction
+      await supabase.rpc('begin_transaction');
       
       // Update inventory
-      await _supabase
+      await supabase
           .from('inventory')
           .update({'quantity': newQuantity})
           .eq('id', sale.itemId);
       
       // Record the sale
-      await _supabase
+      await supabase
           .from('sales')
-          .insert(sale.toJson());
+          .insert(saleData);
       
-      await _supabase.rpc('commit_transaction');
+      await supabase.rpc('commit_transaction');
     } catch (e) {
-      await _supabase.rpc('rollback_transaction');
+      print('Error in addSale: $e'); // For debugging
+      await supabase.rpc('rollback_transaction');
       throw Exception('Failed to record sale: $e');
     }
   }
@@ -1246,6 +1262,35 @@ class SupabaseDatabase {
           .toList();
     } catch (e) {
       throw Exception('Failed to fetch sales: $e');
+    }
+  }
+
+  Future<POSSettings?> getPOSSettings() async {
+    try {
+      final response = await supabase
+          .from('pos_settings')
+          .select()
+          .single();
+      
+      return POSSettings.fromJson(response);
+    } catch (e) {
+      print('Error getting POS settings: $e');
+      return null;
+    }
+  }
+
+  Future<POSSettings?> updatePOSSettings(POSSettings settings) async {
+    try {
+      final response = await supabase
+          .from('pos_settings')
+          .upsert(settings.toJson())
+          .select()
+          .single();
+      
+      return POSSettings.fromJson(response);
+    } catch (e) {
+      print('Error updating POS settings: $e');
+      return null;
     }
   }
 } 

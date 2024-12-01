@@ -16,6 +16,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
 import '../services/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:barcode/barcode.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 enum SortOption {
   nameAZ('Customer Name (A-Z)'),
@@ -1185,193 +1187,230 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
 
   Future<void> _printRepairDetails(RepairTicket repair) async {
     try {
-      final pdf = pw.Document();
+      final pdf = await _generateRepairTicket(repair);
       
-      // Define a custom page format for 80mm thermal printer
-      final receiptPageFormat = PdfPageFormat(
-        204.0, // 72mm printable width
-        double.infinity, // Dynamic height
-        marginAll: 0, // Remove all margins
-      );
-      
-      pdf.addPage(
-        pw.Page(
-          pageFormat: receiptPageFormat,
-          build: (context) => pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8), // Add small horizontal padding only
-            child: pw.Column(
-              mainAxisSize: pw.MainAxisSize.min, // Minimize vertical space
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // Header - remove extra spacing
-                pw.Center(
-                  child: pw.Text(
-                    'Repair Ticket',
-                    style: pw.TextStyle(
-                      fontSize: 16,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 4),
-                
-                // Ticket Info - reduce spacing
-                pw.Center(
-                  child: pw.Text(
-                    repair.ticketNumber,
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.Center(
-                  child: pw.Text(
-                    'Tracking ID: ${repair.trackingId}',
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                ),
-                _buildReceiptDivider(),
-                
-                // Customer Details
-                _buildReceiptSection('Customer Details', [
-                  _buildReceiptRow('Name', repair.customerName),
-                  _buildReceiptRow('Phone', repair.customerPhone),
-                ]),
-                
-                // Device Details
-                _buildReceiptSection('Device Details', [
-                  _buildReceiptRow('Type', repair.deviceType),
-                  _buildReceiptRow('Model', repair.deviceModel),
-                  _buildReceiptRow('Serial', repair.serialNumber),
-                ]),
-                
-                // Repair Details
-                _buildReceiptSection('Repair Details', [
-                  _buildReceiptRow('Status', repair.status.label),
-                  _buildReceiptRow('Cost', repair.formattedEstimatedCost),
-                  _buildReceiptRow('Created', repair.formattedDateCreated),
-                  if (repair.dateCompleted != null)
-                    _buildReceiptRow('Completed', repair.formattedDateCompleted),
-                ]),
-                
-                // Problem Description
-                _buildReceiptSection('Problem', [
-                  pw.Text(
-                    repair.problem,
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                ]),
-                
-                if (repair.diagnosis.isNotEmpty)
-                  _buildReceiptSection('Diagnosis', [
-                    pw.Text(
-                      repair.diagnosis,
-                      style: const pw.TextStyle(fontSize: 12),
-                    ),
-                  ]),
-                
-                if (repair.technicianNotes?.isNotEmpty == true)
-                  _buildReceiptSection('Technician Notes', [
-                    pw.Text(
-                      repair.technicianNotes!,
-                      style: const pw.TextStyle(fontSize: 12),
-                    ),
-                  ]),
-                
-                // Footer
-                _buildReceiptDivider(),
-                pw.Center(
-                  child: pw.Text(
-                    'Track Your Repair Progress',
-                    style: pw.TextStyle(
-                      fontSize: 12,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.Center(
-                  child: pw.Text(
-                    'Use Ticket # or Tracking ID',
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      // Use thermal printer format
+      await Printing.layoutPdf(
+        onLayout: (format) => pdf.save(),
+        format: const PdfPageFormat(
+          58 * PdfPageFormat.mm, // Standard thermal paper width
+          double.infinity,
+          marginAll: 2 * PdfPageFormat.mm,
         ),
+        name: 'Repair-${repair.ticketNumber}',
       );
 
-      await Printing.layoutPdf(
-        onLayout: (format) async => await pdf.save(),
-        name: 'Repair Receipt ${repair.ticketNumber}',
-        format: receiptPageFormat,
-      );
+      // Close dialogs after printing
+      if (mounted) {
+        Navigator.of(context).pop(); // Close details dialog
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error printing: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error printing: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  // Update the helper methods to reduce spacing
-  pw.Widget _buildReceiptSection(String title, List<pw.Widget> children) {
-    return pw.Column(
-      mainAxisSize: pw.MainAxisSize.min, // Minimize vertical space
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          title,
-          style: pw.TextStyle(
-            fontSize: 13,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-        pw.SizedBox(height: 2), // Reduce spacing
-        ...children,
-        _buildReceiptDivider(),
-      ],
-    );
-  }
+  Future<pw.Document> _generateRepairTicket(RepairTicket repair) async {
+    final pdf = pw.Document();
+    
+    // Load fonts
+    final regularFont = await PdfGoogleFonts.nunitoRegular();
+    final boldFont = await PdfGoogleFonts.nunitoBold();
 
-  pw.Widget _buildReceiptRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 1), // Reduce bottom padding
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 60,
-            child: pw.Text(
-              label,
-              style: const pw.TextStyle(fontSize: 12),
+    // Get POS settings
+    final settings = await SupabaseDatabase.instance.getPOSSettings();
+
+    // Generate QR code data
+    final qrData = {
+      'ticket': repair.ticketNumber,
+      'tracking': repair.trackingId,
+      'customer': repair.customerName,
+      'device': repair.deviceType,
+      'status': repair.status.name,
+    };
+
+    // Create barcode
+    final barcode = Barcode.code128();
+    final barcodeData = await barcode.toSvg(repair.ticketNumber, width: 200, height: 40);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat(
+          58 * PdfPageFormat.mm,
+          double.infinity,
+          marginAll: 2 * PdfPageFormat.mm,
+        ),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          mainAxisSize: pw.MainAxisSize.min,
+          children: [
+            // Store Header
+            pw.Text(
+              settings?.storeName ?? 'QUICK STOCK',
+              style: pw.TextStyle(font: boldFont, fontSize: 10),
             ),
-          ),
-          pw.Text(
-            ': ',
-            style: const pw.TextStyle(fontSize: 12),
-          ),
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              style: const pw.TextStyle(fontSize: 12),
+            pw.SizedBox(height: 2),
+            pw.Text(
+              settings?.tagline ?? 'Your One-Stop Shop',
+              style: pw.TextStyle(font: regularFont, fontSize: 7),
             ),
-          ),
-        ],
+            pw.Text(
+              settings?.phone ?? '+254 123 456 789',
+              style: pw.TextStyle(font: regularFont, fontSize: 7),
+            ),
+            pw.Text(
+              settings?.address ?? 'Your Address Here',
+              style: pw.TextStyle(font: regularFont, fontSize: 7),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // Repair Header with Barcode
+            pw.Text(
+              'Repair Ticket',
+              style: pw.TextStyle(font: boldFont, fontSize: 10),
+            ),
+            if (settings?.showTicketBarcode ?? true) ...[
+              pw.SizedBox(height: 5),
+              pw.SvgImage(svg: barcodeData),
+            ],
+            pw.SizedBox(height: 2),
+            pw.Text(
+              'TICKET${repair.ticketNumber}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Tracking ID: ${repair.trackingId}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // Customer Details
+            pw.Text(
+              'Customer Details',
+              style: pw.TextStyle(font: boldFont, fontSize: 9),
+            ),
+            pw.Text(
+              'Name    : ${repair.customerName}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Phone   : ${repair.customerPhone}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // Device Details
+            pw.Text(
+              'Device Details',
+              style: pw.TextStyle(font: boldFont, fontSize: 9),
+            ),
+            pw.Text(
+              'Type    : ${repair.deviceType}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Model   : ${repair.deviceModel}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Serial  : ${repair.serialNumber}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // Repair Details
+            pw.Text(
+              'Repair Details',
+              style: pw.TextStyle(font: boldFont, fontSize: 9),
+            ),
+            pw.Text(
+              'Status  : ${repair.status.name}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Cost    : KSH ${repair.estimatedCost.toStringAsFixed(2)}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Created : ${DateFormat('MMM dd, yyyy').format(repair.dateCreated)}',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            if (repair.dateCompleted != null)
+              pw.Text(
+                'Completed: ${DateFormat('MMM dd, yyyy').format(repair.dateCompleted!)}',
+                style: pw.TextStyle(font: regularFont, fontSize: 8),
+              ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // Problem and Diagnosis
+            pw.Text(
+              'Problem',
+              style: pw.TextStyle(font: boldFont, fontSize: 9),
+            ),
+            pw.Text(
+              repair.problem,
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Text(
+              'Diagnosis',
+              style: pw.TextStyle(font: boldFont, fontSize: 9),
+            ),
+            pw.Text(
+              repair.diagnosis ?? 'Pending',
+              style: pw.TextStyle(font: regularFont, fontSize: 8),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Divider(thickness: 0.5),
+
+            // QR Code
+            if (settings?.showRepairQR ?? true) ...[
+              pw.BarcodeWidget(
+                data: qrData.toString(),
+                barcode: pw.Barcode.qrCode(),
+                width: 50,
+                height: 50,
+              ),
+              pw.SizedBox(height: 4),
+            ],
+
+            // Footer
+            pw.Text(
+              'Track Your Repair Progress',
+              style: pw.TextStyle(font: boldFont, fontSize: 8),
+            ),
+            pw.Text(
+              'Use Ticket # or Tracking ID',
+              style: pw.TextStyle(font: regularFont, fontSize: 7),
+            ),
+            if (settings?.website != null)
+              pw.Text(
+                settings!.website!,
+                style: pw.TextStyle(font: regularFont, fontSize: 7),
+              ),
+
+            // Custom Footer Text
+            if (settings?.repairFooterText != null) ...[
+              pw.SizedBox(height: 2),
+              pw.Text(
+                settings!.repairFooterText!,
+                style: pw.TextStyle(font: regularFont, fontSize: 7),
+                textAlign: pw.TextAlign.center,
+              ),
+            ],
+          ],
+        ),
       ),
     );
-  }
 
-  pw.Widget _buildReceiptDivider() {
-    return pw.Container(
-      margin: const pw.EdgeInsets.symmetric(vertical: 3), // Reduce vertical margins
-      height: 1,
-      color: PdfColors.grey300,
-    );
+    return pdf;
   }
 } 

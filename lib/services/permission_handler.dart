@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PermissionService {
   static bool _hasStoragePermission = false;
@@ -8,10 +9,23 @@ class PermissionService {
   static bool get hasStoragePermission => _hasStoragePermission;
 
   static Future<bool> checkStoragePermission() async {
-    final storageStatus = await Permission.storage.status;
-    final manageStatus = await Permission.manageExternalStorage.status;
-    _hasStoragePermission = storageStatus.isGranted || manageStatus.isGranted;
-    return _hasStoragePermission;
+    if (kIsWeb) {
+      // Web platform doesn't need storage permission
+      return true;
+    }
+    
+    final status = await Permission.storage.status;
+    return status.isGranted;
+  }
+
+  static Future<bool> requestStoragePermission() async {
+    if (kIsWeb) {
+      // Web platform doesn't need storage permission
+      return true;
+    }
+    
+    final status = await Permission.storage.request();
+    return status.isGranted;
   }
 
   static Future<void> requestInitialPermissions(BuildContext context) async {

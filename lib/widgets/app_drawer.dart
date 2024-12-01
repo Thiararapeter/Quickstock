@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../screens/warranty_list_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/sales_screen.dart';
+import '../screens/pos_settings_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -110,12 +111,25 @@ class AppDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   icon: Icons.point_of_sale_outlined,
                   selectedIcon: Icons.point_of_sale,
-                  label: 'New Sale',
+                  label: 'POS',
                   index: 7,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SalesScreen()),
+                    );
+                  },
+                  context: context,
+                ),
+                _buildDrawerItem(
+                  icon: Icons.settings_outlined,
+                  selectedIcon: Icons.settings,
+                  label: 'POS Settings',
+                  index: 8,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const POSSettingsScreen()),
                     );
                   },
                   context: context,
@@ -299,7 +313,7 @@ class AppDrawer extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        onTap: onTap,
+        onTap: onTap ?? () => onItemTapped(index),
       ),
     );
   }

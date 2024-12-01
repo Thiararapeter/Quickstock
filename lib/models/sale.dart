@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 class Sale {
   final String id;
@@ -12,10 +13,12 @@ class Sale {
   final String? customerName;
   final String? customerPhone;
   final String paymentMethod;
+  final String? transactionCode;
   final String? notes;
+  final String receiptId;
 
   Sale({
-    required this.id,
+    String? id,
     required this.itemId,
     required this.itemName,
     required this.category,
@@ -26,8 +29,10 @@ class Sale {
     this.customerName,
     this.customerPhone,
     this.paymentMethod = 'Cash',
+    this.transactionCode,
     this.notes,
-  });
+    required this.receiptId,
+  }) : this.id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {
@@ -42,7 +47,9 @@ class Sale {
       'customer_name': customerName,
       'customer_phone': customerPhone,
       'payment_method': paymentMethod,
+      'transaction_code': transactionCode,
       'notes': notes,
+      'receipt_id': receiptId,
     };
   }
 
@@ -59,7 +66,9 @@ class Sale {
       customerName: json['customer_name'],
       customerPhone: json['customer_phone'],
       paymentMethod: json['payment_method'],
+      transactionCode: json['transaction_code'],
       notes: json['notes'],
+      receiptId: json['receipt_id'],
     );
   }
 

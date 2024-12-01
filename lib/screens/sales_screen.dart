@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
-import '../models/sale.dart';
 import '../services/supabase_database.dart';
-import 'package:intl/intl.dart';
 import '../widgets/item_selection_dialog.dart';
 import '../widgets/checkout_sheet.dart';
 import '../models/cart_item.dart';
@@ -74,22 +72,47 @@ class _SalesScreenState extends State<SalesScreen> {
   void _updateCartItemQuantity(InventoryItem item, int delta) {
     final existingIndex = _cart.indexWhere((i) => i.item.id == item.id);
     
-    if (existingIndex != -1) {
-      final newQuantity = _cart[existingIndex].quantity + delta;
-      if (newQuantity <= 0) {
+    try {
+      if (existingIndex != -1) {
+        final cartItem = _cart[existingIndex];
+        final newQuantity = cartItem.quantity + delta;
+
+        // Check if trying to exceed available stock
+        if (newQuantity > item.quantity) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cannot exceed available stock'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
         setState(() {
-          _cart.removeAt(existingIndex);
+          cartItem.quantity = newQuantity;
         });
-      } else if (newQuantity <= item.quantity) {
-        setState(() {
-          _cart[existingIndex].quantity = newQuantity;
-        });
+      } else if (delta > 0) {
+        if (item.quantity > 0) {
+          setState(() {
+            _cart.add(CartItem(item: item, quantity: delta));
+          });
+          _showAddToCartAnimation();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Item out of stock'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
-    } else if (delta > 0 && item.quantity > 0) {
-      setState(() {
-        _cart.add(CartItem(item: item, quantity: 1));
-      });
-      _showAddToCartAnimation();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating cart: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -142,20 +165,56 @@ class _SalesScreenState extends State<SalesScreen> {
         builder: (context) => CartScreen(
           cart: _cart,
           onUpdateQuantity: (index, delta) {
-            setState(() {
+            try {
+              if (index < 0 || index >= _cart.length) return;
+              
               final cartItem = _cart[index];
               final newQuantity = cartItem.quantity + delta;
-              if (newQuantity > 0 && newQuantity <= cartItem.item.quantity) {
-                cartItem.quantity = newQuantity;
+
+              if (newQuantity > cartItem.item.quantity) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cannot exceed available stock'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
               }
-            });
+
+              setState(() {
+                cartItem.quantity = newQuantity;
+              });
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error updating quantity: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
           onRemoveItem: (index) {
+            if (index < 0 || index >= _cart.length) return;
             setState(() {
-              _cart.removeAt(index);
+              _cart.removeAt(index); // Remove item completely from cart
             });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Item removed from cart'),
+                backgroundColor: Colors.green,
+              ),
+            );
           },
           onCheckout: () {
+            if (_cart.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cart is empty'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
@@ -163,10 +222,8 @@ class _SalesScreenState extends State<SalesScreen> {
               builder: (context) => CheckoutSheet(
                 cart: _cart,
                 onSuccess: () {
-                  setState(() {
-                    _cart.clear();
-                  });
-                  _loadItems(); // Refresh items after successful checkout
+                  setState(() => _cart.clear());
+                  _loadItems();
                 },
               ),
             );

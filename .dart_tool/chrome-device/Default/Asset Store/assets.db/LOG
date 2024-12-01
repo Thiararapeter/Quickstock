@@ -1,5 +1,3 @@
-2024/12/01-18:13:03.214 3b64 Reusing MANIFEST C:\Users\user\AppData\Local\Temp\flutter_tools.2560093\flutter_tools_chrome_device.c09f3c89\Default\Asset Store\assets.db/MANIFEST-000001
-2024/12/01-18:13:03.220 3b64 Recovering log #3
-2024/12/01-18:13:03.232 3b64 Level-0 table #3: started
-2024/12/01-18:13:03.243 3b64 Level-0 table #3: 348029 bytes OK
-2024/12/01-18:13:03.251 3b64 Delete type=0 #3
+2024/12/01-23:32:37.148 3e20 Reusing MANIFEST C:\Users\user\AppData\Local\Temp\flutter_tools.930c9849\flutter_tools_chrome_device.77d87437\Default\Asset Store\assets.db/MANIFEST-000001
+2024/12/01-23:32:48.198 3e20 Recovering log #4
+2024/12/01-23:32:48.402 3e20 Reusing old log C:\Users\user\AppData\Local\Temp\flutter_tools.930c9849\flutter_tools_chrome_device.77d87437\Default\Asset Store\assets.db/000004.log 

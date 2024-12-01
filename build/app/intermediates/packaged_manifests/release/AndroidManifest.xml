@@ -57,7 +57,8 @@
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="quick_stock"
-        android:largeHeap="true" >
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="true" >
         <activity
             android:name="com.thiarara.quick_stock.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"

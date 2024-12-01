@@ -422,6 +422,12 @@
       "languageVersion": "2.19"
     },
     {
+      "name": "pdf_widget_wrapper",
+      "rootUri": "file:///C:/Users/user/AppData/Local/Pub/Cache/hosted/pub.dev/pdf_widget_wrapper-1.0.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "permission_handler",
       "rootUri": "file:///C:/Users/user/AppData/Local/Pub/Cache/hosted/pub.dev/permission_handler-11.3.1",
       "packageUri": "lib/",
@@ -480,6 +486,12 @@
       "rootUri": "file:///C:/Users/user/AppData/Local/Pub/Cache/hosted/pub.dev/postgrest-2.4.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
+    },
+    {
+      "name": "printing",
+      "rootUri": "file:///C:/Users/user/AppData/Local/Pub/Cache/hosted/pub.dev/printing-5.13.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "qr",
@@ -746,7 +758,7 @@
       "languageVersion": "3.0"
     }
   ],
-  "generated": "2024-12-01T11:29:10.249761Z",
+  "generated": "2024-12-01T14:57:39.939202Z",
   "generator": "pub",
   "generatorVersion": "3.5.4",
   "flutterRoot": "file:///C:/flutter",

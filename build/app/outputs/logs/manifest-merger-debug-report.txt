@@ -4,6 +4,8 @@ INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidMa
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml
 MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-20:19
 MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-20:19
+MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-17:19
+MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-17:19
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-33:19
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-33:19
 MERGED from [:url_launcher_android] C:\Users\user\Downloads\Quick-stock\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-12:19
@@ -44,6 +46,7 @@ MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_
 MERGED from [:package_info_plus] C:\Users\user\Downloads\Quick-stock\build\package_info_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-19:12
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-35:12
 MERGED from [:shared_preferences_android] C:\Users\user\Downloads\Quick-stock\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:url_launcher_android] C:\Users\user\Downloads\Quick-stock\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-14:12
@@ -175,6 +178,8 @@ MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\p
 MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:shared_preferences_android] C:\Users\user\Downloads\Quick-stock\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
@@ -291,6 +296,16 @@ ADDED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_f
 		ADDED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:18:17-50
 	android:name
 		ADDED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:17:17-67
+provider#net.nfet.flutter.printing.PrintFileProvider
+ADDED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:8:9-16:20
+	android:grantUriPermissions
+		ADDED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:12:13-47
+	android:authorities
+		ADDED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:10:13-68
+	android:exported
+		ADDED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:11:13-37
+	android:name
+		ADDED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:9:13-71
 provider#dev.fluttercommunity.plus.share.ShareFileProvider
 ADDED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:13:9-21:20
 	android:grantUriPermissions

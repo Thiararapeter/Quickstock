@@ -15,6 +15,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
 import '../services/permission_handler.dart';
+import 'package:printing/printing.dart';
 
 enum SortOption {
   nameAZ('Customer Name (A-Z)'),
@@ -597,6 +598,11 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
                                                           tooltip: 'Download PDF',
                                                         ),
                                                         IconButton(
+                                                          icon: const Icon(Icons.print, size: 18),
+                                                          onPressed: () => _printRepairDetails(repair),
+                                                          tooltip: 'Print',
+                                                        ),
+                                                        IconButton(
                                                           icon: const Icon(Icons.message, size: 18),
                                                           onPressed: () => _generateAndSharePdf(repair, shareOnWhatsApp: true),
                                                           tooltip: 'Share via WhatsApp',
@@ -1071,17 +1077,18 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
         border: pw.Border.all(color: PdfColors.grey300),
       ),
       padding: const pw.EdgeInsets.all(16),
+      margin: const pw.EdgeInsets.only(bottom: 10),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
             title,
             style: pw.TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
-          pw.SizedBox(height: 12),
+          pw.SizedBox(height: 8),
           ...children,
         ],
       ),
@@ -1174,5 +1181,197 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
         );
       }
     }
+  }
+
+  Future<void> _printRepairDetails(RepairTicket repair) async {
+    try {
+      final pdf = pw.Document();
+      
+      // Define a custom page format for 80mm thermal printer
+      final receiptPageFormat = PdfPageFormat(
+        204.0, // 72mm printable width
+        double.infinity, // Dynamic height
+        marginAll: 0, // Remove all margins
+      );
+      
+      pdf.addPage(
+        pw.Page(
+          pageFormat: receiptPageFormat,
+          build: (context) => pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8), // Add small horizontal padding only
+            child: pw.Column(
+              mainAxisSize: pw.MainAxisSize.min, // Minimize vertical space
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Header - remove extra spacing
+                pw.Center(
+                  child: pw.Text(
+                    'Repair Ticket',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                
+                // Ticket Info - reduce spacing
+                pw.Center(
+                  child: pw.Text(
+                    repair.ticketNumber,
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.Center(
+                  child: pw.Text(
+                    'Tracking ID: ${repair.trackingId}',
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ),
+                _buildReceiptDivider(),
+                
+                // Customer Details
+                _buildReceiptSection('Customer Details', [
+                  _buildReceiptRow('Name', repair.customerName),
+                  _buildReceiptRow('Phone', repair.customerPhone),
+                ]),
+                
+                // Device Details
+                _buildReceiptSection('Device Details', [
+                  _buildReceiptRow('Type', repair.deviceType),
+                  _buildReceiptRow('Model', repair.deviceModel),
+                  _buildReceiptRow('Serial', repair.serialNumber),
+                ]),
+                
+                // Repair Details
+                _buildReceiptSection('Repair Details', [
+                  _buildReceiptRow('Status', repair.status.label),
+                  _buildReceiptRow('Cost', repair.formattedEstimatedCost),
+                  _buildReceiptRow('Created', repair.formattedDateCreated),
+                  if (repair.dateCompleted != null)
+                    _buildReceiptRow('Completed', repair.formattedDateCompleted),
+                ]),
+                
+                // Problem Description
+                _buildReceiptSection('Problem', [
+                  pw.Text(
+                    repair.problem,
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ]),
+                
+                if (repair.diagnosis.isNotEmpty)
+                  _buildReceiptSection('Diagnosis', [
+                    pw.Text(
+                      repair.diagnosis,
+                      style: const pw.TextStyle(fontSize: 12),
+                    ),
+                  ]),
+                
+                if (repair.technicianNotes?.isNotEmpty == true)
+                  _buildReceiptSection('Technician Notes', [
+                    pw.Text(
+                      repair.technicianNotes!,
+                      style: const pw.TextStyle(fontSize: 12),
+                    ),
+                  ]),
+                
+                // Footer
+                _buildReceiptDivider(),
+                pw.Center(
+                  child: pw.Text(
+                    'Track Your Repair Progress',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.Center(
+                  child: pw.Text(
+                    'Use Ticket # or Tracking ID',
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (format) async => await pdf.save(),
+        name: 'Repair Receipt ${repair.ticketNumber}',
+        format: receiptPageFormat,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error printing: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Update the helper methods to reduce spacing
+  pw.Widget _buildReceiptSection(String title, List<pw.Widget> children) {
+    return pw.Column(
+      mainAxisSize: pw.MainAxisSize.min, // Minimize vertical space
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          title,
+          style: pw.TextStyle(
+            fontSize: 13,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 2), // Reduce spacing
+        ...children,
+        _buildReceiptDivider(),
+      ],
+    );
+  }
+
+  pw.Widget _buildReceiptRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 1), // Reduce bottom padding
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 60,
+            child: pw.Text(
+              label,
+              style: const pw.TextStyle(fontSize: 12),
+            ),
+          ),
+          pw.Text(
+            ': ',
+            style: const pw.TextStyle(fontSize: 12),
+          ),
+          pw.Expanded(
+            child: pw.Text(
+              value,
+              style: const pw.TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildReceiptDivider() {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 3), // Reduce vertical margins
+      height: 1,
+      color: PdfColors.grey300,
+    );
   }
 } 

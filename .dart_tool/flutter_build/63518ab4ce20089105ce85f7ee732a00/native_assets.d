@@ -1,0 +1,1 @@
+ C:\\Users\\user\\Downloads\\Quick-stock\\.dart_tool\\flutter_build\\63518ab4ce20089105ce85f7ee732a00\\native_assets.yaml: 

@@ -1,0 +1,3 @@
+platform :ios, '12.0' # Update minimum iOS version
+
+# ... rest of your Podfile ... 

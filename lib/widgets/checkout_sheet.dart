@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import '../models/sale.dart';
 import '../models/cart_item.dart';
 import '../services/supabase_database.dart';
-import '../screens/sales_screen.dart';
 import 'sale_receipt.dart';
 
 class CheckoutSheet extends StatefulWidget {

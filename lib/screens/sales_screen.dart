@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../services/supabase_database.dart';
-import '../widgets/item_selection_dialog.dart';
 import '../widgets/checkout_sheet.dart';
 import '../models/cart_item.dart';
 import 'cart_screen.dart';

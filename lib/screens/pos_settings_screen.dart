@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/pos_settings.dart';
 import '../services/supabase_database.dart';
+import 'package:uuid/uuid.dart';
 
 class POSSettingsScreen extends StatefulWidget {
   const POSSettingsScreen({super.key});
@@ -27,7 +25,6 @@ class _POSSettingsScreenState extends State<POSSettingsScreen> {
   bool _showQRCode = true;
   bool _showRepairQR = true;
   bool _showTicketBarcode = true;
-  bool _isLoading = false;
   POSSettings? _settings;
 
   @override
@@ -49,7 +46,6 @@ class _POSSettingsScreenState extends State<POSSettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    setState(() => _isLoading = true);
     try {
       final settings = await SupabaseDatabase.instance.getPOSSettings();
       if (settings != null) {
@@ -76,15 +72,12 @@ class _POSSettingsScreenState extends State<POSSettingsScreen> {
           SnackBar(content: Text('Error loading settings: $e')),
         );
       }
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
     try {
       final userId = SupabaseDatabase.instance.supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
@@ -124,8 +117,6 @@ class _POSSettingsScreenState extends State<POSSettingsScreen> {
           SnackBar(content: Text('Error saving settings: $e')),
         );
       }
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 

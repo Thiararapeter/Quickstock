@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/repair_ticket.dart';
 import '../services/supabase_database.dart';
+import 'package:uuid/uuid.dart';
 
 class AddEditRepairScreen extends StatefulWidget {
   final RepairTicket? ticket;
@@ -66,18 +67,16 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
     super.dispose();
   }
 
-  Future<void> _saveTicket() async {
+  Future<void> _saveRepair() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
     try {
-      final database = SupabaseDatabase.instance;
-      final ticketNumber = await database.generateTicketNumber();
-      final trackingId = database.generateTrackingId();
+      final ticketNumber = await SupabaseDatabase.instance.generateTicketNumber();
+      final trackingId = SupabaseDatabase.instance.generateTrackingId();
 
       final ticket = RepairTicket(
-        id: widget.ticket?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.ticket?.id ?? const Uuid().v4(),
         ticketNumber: widget.ticket?.ticketNumber ?? ticketNumber,
         trackingId: widget.ticket?.trackingId ?? trackingId,
         customerName: _customerNameController.text,
@@ -87,19 +86,16 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
         serialNumber: _serialNumberController.text,
         problem: _problemController.text,
         diagnosis: _diagnosisController.text,
-        estimatedCost: double.tryParse(_estimatedCostController.text) ?? 0.0,
+        estimatedCost: double.parse(_estimatedCostController.text),
         status: _status,
         dateCreated: widget.ticket?.dateCreated ?? DateTime.now(),
-        dateCompleted: _status == RepairStatus.completed ? DateTime.now() : null,
-        usedPartIds: widget.ticket?.usedPartIds ?? [],
-        technicianNotes: _technicianNotesController.text,
-        customerNotes: _customerNotesController.text,
+        cost: double.parse(_estimatedCostController.text),
       );
 
       if (widget.ticket == null) {
-        await database.createRepairTicket(ticket);
+        await SupabaseDatabase.instance.createRepairTicket(ticket);
       } else {
-        await database.updateRepairTicket(ticket);
+        await SupabaseDatabase.instance.updateRepairTicket(ticket);
       }
 
       if (mounted) {
@@ -108,10 +104,7 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving ticket: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error saving repair: $e')),
         );
       }
     } finally {
@@ -258,7 +251,7 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _saveTicket,
+                      onPressed: _isLoading ? null : _saveRepair,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Text(

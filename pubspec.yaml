@@ -32,6 +32,8 @@ dependencies:
   google_fonts: ^6.1.0
   qr: ^3.0.1
   barcode: ^2.2.4
+  fl_chart: ^0.65.0
+  excel: ^3.0.0
 
 dev_dependencies:
   flutter_test:

@@ -5,6 +5,8 @@ import '../screens/warranty_list_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/sales_screen.dart';
 import '../screens/pos_settings_screen.dart';
+import '../screens/reports_screen.dart';
+import '../screens/sales_report_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -186,6 +188,34 @@ class AppDrawer extends StatelessWidget {
                   selectedIcon: Icons.home_repair_service,
                   label: 'Repairs',
                   index: 4,
+                  context: context,
+                ),
+
+                // Add Reports Section before Finances
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'REPORTS',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _buildDrawerItem(
+                  icon: Icons.assessment_outlined,
+                  selectedIcon: Icons.assessment,
+                  label: 'Reports',
+                  index: 9,  // New index for reports
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReportsScreen(),
+                      ),
+                    );
+                  },
                   context: context,
                 ),
 

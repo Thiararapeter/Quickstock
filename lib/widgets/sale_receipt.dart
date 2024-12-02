@@ -6,13 +6,15 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../models/cart_item.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:qr/qr.dart';
 import 'package:barcode/barcode.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:open_file/open_file.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
 import '../services/supabase_database.dart';
+import 'package:app_settings/app_settings.dart';
 
-class SaleReceipt extends StatelessWidget {
+class SaleReceipt extends StatefulWidget {
   final List<CartItem> cart;
   final String customerName;
   final String customerPhone;
@@ -30,8 +32,13 @@ class SaleReceipt extends StatelessWidget {
     required this.saleDate,
   });
 
+  @override
+  State<SaleReceipt> createState() => _SaleReceiptState();
+}
+
+class _SaleReceiptState extends State<SaleReceipt> {
   double get totalAmount =>
-      cart.fold(0, (sum, item) => sum + (item.item.sellingPrice * item.quantity));
+      widget.cart.fold(0, (sum, item) => sum + (item.item.sellingPrice * item.quantity));
 
   Future<void> _printReceipt(BuildContext context) async {
     try {
@@ -40,19 +47,19 @@ class SaleReceipt extends StatelessWidget {
       await Printing.layoutPdf(
         onLayout: (format) => pdf.save(),
         format: const PdfPageFormat(
-          58 * PdfPageFormat.mm, // Standard thermal paper width
+          58 * PdfPageFormat.mm,
           double.infinity,
           marginAll: 2 * PdfPageFormat.mm,
         ),
-        name: 'Receipt-$receiptNumber',
+        name: 'Receipt-${widget.receiptNumber}',
       );
       
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close receipt dialog
-        Navigator.of(context).pop(); // Return to shop
+      if (mounted) {
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error printing: $e'), backgroundColor: Colors.red),
         );
@@ -62,19 +69,66 @@ class SaleReceipt extends StatelessWidget {
 
   Future<void> _downloadReceipt() async {
     try {
+      // Request both storage permissions
+      final storageStatus = await Permission.storage.request();
+      final manageStatus = await Permission.manageExternalStorage.request();
+      
+      if (!storageStatus.isGranted || !manageStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Storage permission is required to save receipts'),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: AppSettings.openAppSettings,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       final pdf = await _generatePdf();
-      final output = await getApplicationDocumentsDirectory();
-      final file = File('${output.path}/Receipt-$receiptNumber.pdf');
+      
+      // Get the downloads directory
+      final downloadsPath = Directory('/storage/emulated/0/Download/QuickStock/Receipts');
+      await downloadsPath.create(recursive: true);
+
+      // Save the file
+      final file = File('${downloadsPath.path}/Receipt_${widget.receiptNumber}.pdf');
       await file.writeAsBytes(await pdf.save());
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Receipt saved to Downloads/QuickStock/Receipts folder'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () => OpenFile.open(file.path),
+            ),
+          ),
+        );
+        Navigator.of(context).pop(); // Close receipt dialog
+        Navigator.of(context).pop(); // Return to shop
+      }
     } catch (e) {
-      print('Error downloading receipt: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving receipt: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<pw.Document> _generatePdf() async {
     final pdf = pw.Document();
     
-    // Load fonts
+    // Load fonts using PdfGoogleFonts from printing package
     final regularFont = await PdfGoogleFonts.nunitoRegular();
     final boldFont = await PdfGoogleFonts.nunitoBold();
 
@@ -83,15 +137,15 @@ class SaleReceipt extends StatelessWidget {
 
     // Generate QR code data
     final qrData = {
-      'receipt': receiptNumber,
-      'date': saleDate.toIso8601String(),
+      'receipt': widget.receiptNumber,
+      'date': widget.saleDate.toIso8601String(),
       'amount': totalAmount.toString(),
-      'items': cart.length.toString(),
+      'items': widget.cart.length.toString(),
     };
 
     // Create barcode
     final barcode = Barcode.code128();
-    final barcodeData = await barcode.toSvg(receiptNumber, width: 200, height: 40);
+    final barcodeData = await barcode.toSvg(widget.receiptNumber, width: 200, height: 40);
 
     pdf.addPage(
       pw.Page(
@@ -131,11 +185,11 @@ class SaleReceipt extends StatelessWidget {
               pw.SizedBox(height: 2),
             ],
             pw.Text(
-              'Receipt #: $receiptNumber',
+              'Receipt #: ${widget.receiptNumber}',
               style: pw.TextStyle(font: regularFont, fontSize: 8),
             ),
             pw.Text(
-              DateFormat('MM/dd/yyyy HH:mm').format(saleDate),
+              DateFormat('MM/dd/yyyy HH:mm').format(widget.saleDate),
               style: pw.TextStyle(font: regularFont, fontSize: 8),
             ),
             pw.Text(
@@ -143,16 +197,16 @@ class SaleReceipt extends StatelessWidget {
               style: pw.TextStyle(font: regularFont, fontSize: 8),
             ),
             pw.Text(
-              'Payment: $paymentMethod',
+              'Payment: ${widget.paymentMethod}',
               style: pw.TextStyle(font: regularFont, fontSize: 8),
             ),
             pw.Divider(thickness: 0.5),
 
             // Customer Info (if provided)
-            if (customerName.isNotEmpty) ...[
-              pw.Text('Customer: $customerName', 
+            if (widget.customerName.isNotEmpty) ...[
+              pw.Text('Customer: ${widget.customerName}', 
                 style: pw.TextStyle(font: regularFont, fontSize: 8)),
-              pw.Text('Phone: $customerPhone',
+              pw.Text('Phone: ${widget.customerPhone}',
                 style: pw.TextStyle(font: regularFont, fontSize: 8)),
               pw.Divider(thickness: 0.5),
             ],
@@ -174,7 +228,7 @@ class SaleReceipt extends StatelessWidget {
                     pw.Text('Total', style: pw.TextStyle(font: boldFont, fontSize: 8)),
                   ],
                 ),
-                ...cart.map(
+                ...widget.cart.map(
                   (item) => pw.TableRow(
                     children: [
                       pw.Text(item.item.name,
@@ -297,15 +351,32 @@ class SaleReceipt extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                   ),
-                  if (!kIsWeb) // Show download button only on mobile
-                    ElevatedButton.icon(
-                      onPressed: _downloadReceipt,
-                      icon: const Icon(Icons.download, size: 20),
-                      label: const Text('Download'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (Platform.isAndroid) {
+                        final status = await Permission.storage.request();
+                        if (status.isGranted) {
+                          await _downloadReceipt();
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Storage permission required to save receipt'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      } else {
+                        await _downloadReceipt();
+                      }
+                    },
+                    icon: const Icon(Icons.download, size: 20),
+                    label: const Text('Download'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
+                  ),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // Close receipt dialog

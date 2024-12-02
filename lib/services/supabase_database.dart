@@ -9,6 +9,8 @@ import '../models/warranty.dart';
 import '../models/sale.dart';
 import 'package:uuid/uuid.dart';
 import '../models/pos_settings.dart';
+import '../models/receipt.dart';
+import '../models/repair_report.dart';
 
 class SupabaseDatabase {
   static final SupabaseDatabase instance = SupabaseDatabase._init();
@@ -728,7 +730,7 @@ class SupabaseDatabase {
           .select()
           .single();
       
-      return RepairTicket.fromMap(response);
+      return RepairTicket.fromJson(response);
     } catch (e) {
       developer.log('Error creating repair ticket: $e', error: e);
       if (e is PostgrestException) {
@@ -747,7 +749,7 @@ class SupabaseDatabase {
           .select()
           .single();
       
-      return RepairTicket.fromMap(response);
+      return RepairTicket.fromJson(response);
     } catch (e) {
       developer.log('Error updating repair ticket: $e', error: e);
       if (e is PostgrestException) {
@@ -765,7 +767,7 @@ class SupabaseDatabase {
           .select()
           .order('date_created', ascending: false);
       
-      final tickets = response.map<RepairTicket>((row) => RepairTicket.fromMap(row)).toList();
+      final tickets = response.map<RepairTicket>((row) => RepairTicket.fromJson(row)).toList();
       developer.log('Fetched ${tickets.length} repair tickets');
       return tickets;
     } catch (e) {
@@ -782,7 +784,7 @@ class SupabaseDatabase {
           .eq('tracking_id', trackingId)
           .single();
       
-      return RepairTicket.fromMap(response);
+      return RepairTicket.fromJson(response);
     } catch (e) {
       developer.log('Error fetching repair ticket: $e', error: e);
       return null;
@@ -956,34 +958,48 @@ class SupabaseDatabase {
 
   Future<void> addExpense(Expense expense) async {
     try {
-      await _supabase.from('expenses').insert(expense.toJson());
+      developer.log('Adding expense: ${expense.id}');
+      final expenseData = expense.toJson();
+      
+      await _supabase
+          .from('expenses')
+          .insert(expenseData);
+          
     } catch (e) {
       developer.log('Error adding expense: $e', error: e);
       if (e is PostgrestException) {
-        if (e.message.contains('not-null')) {
-          throw Exception('Please fill in all required fields');
+        if (e.message.contains('foreign key constraint')) {
+          throw Exception('Invalid category. Please select a valid category.');
+        } else if (e.message.contains('not-null')) {
+          throw Exception('Please fill in all required fields.');
         }
         throw Exception('Database error: ${e.message}');
       }
-      throw Exception('Failed to add expense');
+      throw Exception('Failed to add expense: ${e.toString()}');
     }
   }
 
   Future<void> updateExpense(Expense expense) async {
     try {
+      developer.log('Updating expense: ${expense.id}');
+      final expenseData = expense.toJson();
+      
       await _supabase
           .from('expenses')
-          .update(expense.toJson())
+          .update(expenseData)
           .eq('id', expense.id);
+          
     } catch (e) {
       developer.log('Error updating expense: $e', error: e);
       if (e is PostgrestException) {
-        if (e.message.contains('not-null')) {
-          throw Exception('Please fill in all required fields');
+        if (e.message.contains('foreign key constraint')) {
+          throw Exception('Invalid category. Please select a valid category.');
+        } else if (e.message.contains('not-null')) {
+          throw Exception('Please fill in all required fields.');
         }
         throw Exception('Database error: ${e.message}');
       }
-      throw Exception('Failed to update expense');
+      throw Exception('Failed to update expense: ${e.toString()}');
     }
   }
 
@@ -1007,7 +1023,7 @@ class SupabaseDatabase {
           .select()
           .order('date_created', ascending: false);
       
-      final tickets = response.map<RepairTicket>((data) => RepairTicket.fromMap(data)).toList();
+      final tickets = response.map<RepairTicket>((data) => RepairTicket.fromJson(data)).toList();
       developer.log('Fetched ${tickets.length} repair tickets');
       return tickets;
     } catch (e) {
@@ -1046,7 +1062,22 @@ class SupabaseDatabase {
           .eq('id', id)
           .single();
       
-      return Expense.fromJson(response);
+      if (response == null) {
+        return null;
+      }
+      
+      return Expense(
+        id: response['id']?.toString() ?? '',
+        name: response['name']?.toString() ?? 'Unnamed Expense',
+        date: response['date'] != null 
+            ? DateTime.parse(response['date'].toString())
+            : DateTime.now(),
+        category: response['category']?.toString() ?? 'Misc',
+        amount: response['amount'] != null 
+            ? (response['amount'] as num).toDouble()
+            : 0.0,
+        description: response['description']?.toString() ?? '',
+      );
     } catch (e) {
       developer.log('Error fetching expense: $e', error: e);
       if (e is PostgrestException) {
@@ -1065,7 +1096,22 @@ class SupabaseDatabase {
           .select()
           .order('date', ascending: false);
       
-      final expenses = response.map<Expense>((row) => Expense.fromJson(row)).toList();
+      final expenses = response.map<Expense>((row) {
+        // Ensure required string fields have default values if null
+        return Expense(
+          id: row['id']?.toString() ?? '',
+          name: row['name']?.toString() ?? 'Unnamed Expense',
+          date: row['date'] != null 
+              ? DateTime.parse(row['date'].toString())
+              : DateTime.now(),
+          category: row['category']?.toString() ?? 'Misc',
+          amount: row['amount'] != null 
+              ? (row['amount'] as num).toDouble()
+              : 0.0,
+          description: row['description']?.toString() ?? '',
+        );
+      }).toList();
+      
       developer.log('Fetched ${expenses.length} expenses');
       return expenses;
     } catch (e) {
@@ -1291,6 +1337,93 @@ class SupabaseDatabase {
     } catch (e) {
       print('Error updating POS settings: $e');
       return null;
+    }
+  }
+
+  Future<List<Expense>> getExpensesByDateRange(DateTime start, DateTime end) async {
+    final response = await supabase
+        .from('expenses')
+        .select()
+        .gte('date', start.toIso8601String())
+        .lte('date', end.toIso8601String());
+    return (response as List).map((data) => Expense.fromJson(data)).toList();
+  }
+
+  Future<List<RepairTicket>> getRepairsByDateRange(DateTime start, DateTime end) async {
+    final response = await supabase
+        .from('repair_tickets')
+        .select()
+        .gte('date_created', start.toIso8601String())
+        .lte('date_created', end.toIso8601String());
+    return (response as List).map((data) => RepairTicket.fromJson(data)).toList();
+  }
+
+  Future<List<Sale>> getSalesByDateRange(DateTime start, DateTime end) async {
+    try {
+      final response = await supabase
+          .from('sales')
+          .select()
+          .gte('sale_date', start.toIso8601String())
+          .lte('sale_date', end.toIso8601String())
+          .order('sale_date', ascending: false);
+      
+      return (response as List).map((data) => Sale.fromJson(data)).toList();
+    } catch (e) {
+      developer.log('Error fetching sales: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<List<Receipt>> getReceiptsByDateRange(DateTime start, DateTime end) async {
+    try {
+      final response = await supabase
+          .from('receipts')
+          .select()
+          .gte('sale_date', start.toIso8601String())
+          .lte('sale_date', end.toIso8601String())
+          .order('sale_date', ascending: false);
+      
+      return (response as List).map((data) => Receipt.fromJson(data)).toList();
+    } catch (e) {
+      developer.log('Error fetching receipts: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<List<RepairTicket>> getRepairsByDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final response = await _supabase
+        .from('repair_tickets')
+        .select()
+        .gte('created_at', startOfDay.toIso8601String())
+        .lt('created_at', endOfDay.toIso8601String())
+        .order('created_at');
+
+    return response.map((json) => RepairTicket.fromJson(json)).toList();
+  }
+
+  Future<List<RepairReport>> getRepairReport(DateTime startDate, DateTime endDate) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_repair_report',
+        params: {
+          'start_date': startDate.toIso8601String(),
+          'end_date': endDate.toIso8601String(),
+        },
+      );
+
+      if (response == null) {
+        throw Exception('No data returned from the database');
+      }
+
+      return (response as List)
+          .map((json) => RepairReport.fromJson(json))
+          .toList();
+    } catch (e) {
+      developer.log('Error getting repair report: $e', error: e);
+      throw Exception('Failed to load repair report: $e');
     }
   }
 } 

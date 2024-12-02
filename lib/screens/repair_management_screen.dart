@@ -17,7 +17,6 @@ import 'package:app_settings/app_settings.dart';
 import '../services/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:barcode/barcode.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 enum SortOption {
   nameAZ('Customer Name (A-Z)'),
@@ -595,14 +594,32 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
                                                           tooltip: 'Share',
                                                         ),
                                                         IconButton(
-                                                          icon: const Icon(Icons.download, size: 18),
-                                                          onPressed: () => _generateAndSavePdf(repair),
-                                                          tooltip: 'Download PDF',
-                                                        ),
-                                                        IconButton(
                                                           icon: const Icon(Icons.print, size: 18),
                                                           onPressed: () => _printRepairDetails(repair),
-                                                          tooltip: 'Print',
+                                                          tooltip: 'Print/Save',
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(Icons.download, size: 18),
+                                                          onPressed: () async {
+                                                            if (Platform.isAndroid) {
+                                                              final status = await Permission.storage.request();
+                                                              if (status.isGranted) {
+                                                                await _printRepairDetails(repair); // This now handles both print and save
+                                                              } else {
+                                                                if (mounted) {
+                                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                                    const SnackBar(
+                                                                      content: Text('Storage permission required to save repair ticket'),
+                                                                      backgroundColor: Colors.red,
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              }
+                                                            } else {
+                                                              await _printRepairDetails(repair);
+                                                            }
+                                                          },
+                                                          tooltip: 'Download',
                                                         ),
                                                         IconButton(
                                                           icon: const Icon(Icons.message, size: 18),
@@ -867,347 +884,69 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
     );
   }
 
-  Future<void> _generateAndSavePdf(RepairTicket repair) async {
-    try {
-      if (Platform.isAndroid) {
-        // Check if we have permission
-        if (!await PermissionService.checkStoragePermission()) {
-          if (mounted) {
-            final result = await showDialog<bool>(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Storage Permission Required'),
-                  content: const Text(
-                    'Storage permission is required to save PDFs. Would you like to grant permission now?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Grant Permission'),
-                    ),
-                  ],
-                );
-              },
-            );
-
-            if (result == true) {
-              // Request permission
-              final status = await Permission.storage.request();
-              final manageStatus = await Permission.manageExternalStorage.request();
-              
-              if (!status.isGranted && !manageStatus.isGranted) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Permission denied. Cannot save PDF.'),
-                      action: SnackBarAction(
-                        label: 'Settings',
-                        onPressed: () => AppSettings.openAppSettings(),
-                      ),
-                    ),
-                  );
-                }
-                return;
-              }
-            } else {
-              // User cancelled permission request
-              return;
-            }
-          }
-        }
-      }
-
-      final pdf = pw.Document();
-      
-      pdf.addPage(
-        pw.Page(
-          build: (context) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Text('Repair Ticket Details', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 20),
-              
-              // Ticket Information
-              pw.Text('Ticket Number: ${repair.ticketNumber}'),
-              pw.Text('Tracking ID: ${repair.trackingId}'),
-              pw.Divider(),
-              
-              // Customer Information
-              pw.Text('Customer Details:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 5),
-              pw.Text('Name: ${repair.customerName}'),
-              pw.Text('Phone: ${repair.customerPhone}'),
-              pw.SizedBox(height: 10),
-              
-              // Device Information
-              pw.Text('Device Details:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 5),
-              pw.Text('Device: ${repair.deviceType}'),
-              pw.Text('Model: ${repair.deviceModel}'),
-              pw.Text('Serial: ${repair.serialNumber}'),
-              pw.SizedBox(height: 10),
-              
-              // Repair Information
-              pw.Text('Repair Details:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 5),
-              pw.Text('Status: ${repair.status.label}'),
-              pw.Text('Cost: KSH ${repair.estimatedCost.toStringAsFixed(2)}'),
-              pw.Text('Created: ${DateFormat('MMM d, y').format(repair.dateCreated)}'),
-              if (repair.dateCompleted != null)
-                pw.Text('Completed: ${DateFormat('MMM d, y').format(repair.dateCompleted!)}'),
-              pw.SizedBox(height: 10),
-              
-              // Problem and Diagnosis
-              pw.Text('Problem:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(repair.problem),
-              pw.SizedBox(height: 10),
-              pw.Text('Diagnosis:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(repair.diagnosis.isEmpty ? 'Not provided' : repair.diagnosis),
-              
-              // Footer with tracking instructions
-              pw.Spacer(),
-              pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey200,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Track Your Repair Progress:',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 5),
-                    pw.Text('Use either of these to check your repair status:'),
-                    pw.Text('• Ticket Number: ${repair.ticketNumber}'),
-                    pw.Text('• Tracking ID: ${repair.trackingId}'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      if (Platform.isAndroid) {
-        // Get the downloads directory
-        final directory = await getExternalStorageDirectory();
-        if (directory == null) throw Exception('Could not access storage');
-
-        // Use the actual Downloads folder path
-        final downloadsPath = '/storage/emulated/0/Download';
-        
-        try {
-          // Create downloads directory if it doesn't exist
-          await Directory(downloadsPath).create(recursive: true);
-
-          final file = File('$downloadsPath/repair_ticket_${repair.ticketNumber}.pdf');
-          await file.writeAsBytes(await pdf.save());
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('PDF saved to ${file.path}'),
-                action: SnackBarAction(
-                  label: 'Open',
-                  onPressed: () => OpenFile.open(file.path),
-                ),
-              ),
-            );
-          }
-        } catch (e) {
-          throw Exception('Failed to save PDF: $e');
-        }
-      } else {
-        // For other platforms, use FilePicker
-        String? outputFile = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save PDF File',
-          fileName: 'repair_ticket_${repair.ticketNumber}.pdf',
-          type: FileType.custom,
-          allowedExtensions: ['pdf'],
-        );
-
-        if (outputFile == null) {
-          throw Exception('No save location selected');
-        }
-
-        if (!outputFile.toLowerCase().endsWith('.pdf')) {
-          outputFile = '$outputFile.pdf';
-        }
-
-        final file = File(outputFile);
-        await file.writeAsBytes(await pdf.save());
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('PDF saved to ${file.path}'),
-              action: SnackBarAction(
-                label: 'Open',
-                onPressed: () => OpenFile.open(file.path),
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error generating PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  pw.Widget _buildPdfSection(String title, List<pw.Widget> children) {
-    return pw.Container(
-      decoration: pw.BoxDecoration(
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-        border: pw.Border.all(color: PdfColors.grey300),
-      ),
-      padding: const pw.EdgeInsets.all(16),
-      margin: const pw.EdgeInsets.only(bottom: 10),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            title,
-            style: pw.TextStyle(
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 8),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Future<void> _generateAndSharePdf(RepairTicket repair, {bool shareOnWhatsApp = false}) async {
-    try {
-      final pdf = pw.Document();
-      
-      pdf.addPage(
-        pw.Page(
-          build: (context) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // ... existing header content ...
-              
-              // Add notes if they exist
-              if (repair.technicianNotes?.isNotEmpty == true) ...[
-                pw.SizedBox(height: 10),
-                pw.Text('Technician Notes:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.Text(repair.technicianNotes!),
-              ],
-              if (repair.customerNotes?.isNotEmpty == true) ...[
-                pw.SizedBox(height: 10),
-                pw.Text('Customer Notes:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.Text(repair.customerNotes!),
-              ],
-              
-              // Footer with tracking instructions
-              pw.Spacer(),
-              pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey200,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Track Your Repair Progress:',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 5),
-                    pw.Text('Use either of these to check your repair status:'),
-                    pw.Text('• Ticket Number: ${repair.ticketNumber}'),
-                    pw.Text('• Tracking ID: ${repair.trackingId}'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      // Save PDF to temporary file
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/repair_ticket_${repair.ticketNumber}.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      if (shareOnWhatsApp) {
-        // Check if WhatsApp is installed
-        final whatsappUrl = Uri.parse("whatsapp://send");
-        if (await canLaunchUrl(whatsappUrl)) {
-          // Share PDF file via WhatsApp
-          await Share.shareXFiles(
-            [XFile(file.path)],
-            subject: 'Repair Ticket ${repair.ticketNumber}',
-            text: 'Repair Ticket Details',
-            sharePositionOrigin: const Rect.fromLTWH(0, 0, 10, 10),
-          );
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('WhatsApp not installed')),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error sharing PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _printRepairDetails(RepairTicket repair) async {
     try {
+      // Request both storage permissions
+      final storageStatus = await Permission.storage.request();
+      final manageStatus = await Permission.manageExternalStorage.request();
+      
+      if (!storageStatus.isGranted || !manageStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Storage permission is required to save repair tickets'),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: AppSettings.openAppSettings,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       final pdf = await _generateRepairTicket(repair);
       
-      // Use thermal printer format
+      // Get the downloads directory
+      final downloadsPath = Directory('/storage/emulated/0/Download/QuickStock/Repairs');
+      await downloadsPath.create(recursive: true);
+
+      // Save the file
+      final file = File('${downloadsPath.path}/Repair_${repair.ticketNumber}.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      // Print if needed
       await Printing.layoutPdf(
         onLayout: (format) => pdf.save(),
         format: const PdfPageFormat(
-          58 * PdfPageFormat.mm, // Standard thermal paper width
+          58 * PdfPageFormat.mm,
           double.infinity,
           marginAll: 2 * PdfPageFormat.mm,
         ),
         name: 'Repair-${repair.ticketNumber}',
       );
 
-      // Close dialogs after printing
+      // Show success message
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Repair ticket saved to Downloads/QuickStock/Repairs folder'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () => OpenFile.open(file.path),
+            ),
+          ),
+        );
         Navigator.of(context).pop(); // Close details dialog
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error printing: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error processing repair ticket: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1273,7 +1012,7 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
               'Repair Ticket',
               style: pw.TextStyle(font: boldFont, fontSize: 10),
             ),
-            if (settings?.showTicketBarcode ?? true) ...[
+            if (settings?.showTicketBarcode == true) ...[
               pw.SizedBox(height: 5),
               pw.SvgImage(svg: barcodeData),
             ],
@@ -1412,5 +1151,93 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
     );
 
     return pdf;
+  }
+
+  Future<void> _generateAndSharePdf(RepairTicket repair, {bool shareOnWhatsApp = false}) async {
+    try {
+      final pdf = pw.Document();
+      
+      pdf.addPage(
+        pw.Page(
+          build: (context) => pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // ... existing header content ...
+              
+              // Add notes if they exist
+              if (repair.technicianNotes?.isNotEmpty == true) ...[
+                pw.SizedBox(height: 10),
+                pw.Text('Technician Notes:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text(repair.technicianNotes!),
+              ],
+              if (repair.customerNotes?.isNotEmpty == true) ...[
+                pw.SizedBox(height: 10),
+                pw.Text('Customer Notes:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text(repair.customerNotes!),
+              ],
+              
+              // Footer with tracking instructions
+              pw.Spacer(),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey200,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Track Your Repair Progress:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 5),
+                    pw.Text('Use either of these to check your repair status:'),
+                    pw.Text('• Ticket Number: ${repair.ticketNumber}'),
+                    pw.Text('• Tracking ID: ${repair.trackingId}'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Save PDF to temporary file
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/repair_ticket_${repair.ticketNumber}.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      if (shareOnWhatsApp) {
+        // Check if WhatsApp is installed
+        final whatsappUrl = Uri.parse("whatsapp://send");
+        if (await canLaunchUrl(whatsappUrl)) {
+          // Share PDF file via WhatsApp
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            subject: 'Repair Ticket ${repair.ticketNumber}',
+            text: 'Repair Ticket Details',
+            sharePositionOrigin: const Rect.fromLTWH(0, 0, 10, 10),
+          );
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('WhatsApp not installed')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 } 

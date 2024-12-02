@@ -34,6 +34,25 @@ class Sale {
     required this.receiptId,
   }) : this.id = id ?? const Uuid().v4();
 
+  factory Sale.fromJson(Map<String, dynamic> json) {
+    return Sale(
+      id: json['id'],
+      itemId: json['item_id'],
+      itemName: json['item_name'],
+      category: json['category'],
+      quantitySold: json['quantity_sold'],
+      sellingPrice: (json['selling_price'] as num).toDouble(),
+      totalPrice: (json['total_price'] as num).toDouble(),
+      saleDate: DateTime.parse(json['sale_date']),
+      customerName: json['customer_name'],
+      customerPhone: json['customer_phone'],
+      paymentMethod: json['payment_method'],
+      transactionCode: json['transaction_code'],
+      notes: json['notes'],
+      receiptId: json['receipt_id'],
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -51,25 +70,6 @@ class Sale {
       'notes': notes,
       'receipt_id': receiptId,
     };
-  }
-
-  factory Sale.fromJson(Map<String, dynamic> json) {
-    return Sale(
-      id: json['id'],
-      itemId: json['item_id'],
-      itemName: json['item_name'],
-      category: json['category'],
-      quantitySold: json['quantity_sold'],
-      sellingPrice: json['selling_price'].toDouble(),
-      totalPrice: json['total_price'].toDouble(),
-      saleDate: DateTime.parse(json['sale_date']),
-      customerName: json['customer_name'],
-      customerPhone: json['customer_phone'],
-      paymentMethod: json['payment_method'],
-      transactionCode: json['transaction_code'],
-      notes: json['notes'],
-      receiptId: json['receipt_id'],
-    );
   }
 
   String get formattedDate => DateFormat('MMM dd, yyyy').format(saleDate);

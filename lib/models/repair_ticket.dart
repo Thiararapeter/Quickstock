@@ -31,6 +31,7 @@ class RepairTicket {
   final String? technicianNotes;
   final String? customerNotes;
   final DateTime? updatedAt;
+  final double cost;
 
   RepairTicket({
     required this.id,
@@ -43,39 +44,44 @@ class RepairTicket {
     required this.serialNumber,
     required this.problem,
     this.diagnosis = '',
-    this.estimatedCost = 0.0,
-    this.status = RepairStatus.pending,
+    required this.estimatedCost,
+    required this.status,
     required this.dateCreated,
     this.dateCompleted,
     this.usedPartIds = const [],
     this.technicianNotes,
     this.customerNotes,
     this.updatedAt,
+    required this.cost,
   });
 
-  factory RepairTicket.fromMap(Map<String, dynamic> map) {
+  factory RepairTicket.fromJson(Map<String, dynamic> json) {
     return RepairTicket(
-      id: map['id'] ?? '',
-      ticketNumber: map['ticket_number'] ?? '',
-      trackingId: map['tracking_id'] ?? '',
-      customerName: map['customer_name'] ?? '',
-      customerPhone: map['customer_phone'] ?? '',
-      deviceType: map['device_type'] ?? '',
-      deviceModel: map['device_model'] ?? '',
-      serialNumber: map['serial_number'] ?? '',
-      problem: map['problem'] ?? '',
-      diagnosis: map['diagnosis'] ?? '',
-      estimatedCost: (map['estimated_cost'] ?? 0.0).toDouble(),
+      id: json['id'],
+      ticketNumber: json['ticket_number'],
+      trackingId: json['tracking_id'],
+      customerName: json['customer_name'],
+      customerPhone: json['customer_phone'],
+      deviceType: json['device_type'],
+      deviceModel: json['device_model'],
+      serialNumber: json['serial_number'],
+      problem: json['problem'],
+      diagnosis: json['diagnosis'] ?? '',
+      estimatedCost: (json['estimated_cost'] as num).toDouble(),
       status: RepairStatus.values.firstWhere(
-        (e) => e.toString() == 'RepairStatus.${map['status'] ?? 'pending'}',
-        orElse: () => RepairStatus.pending,
+        (e) => e.toString().split('.').last == json['status'],
       ),
-      dateCreated: DateTime.parse(map['date_created'] ?? DateTime.now().toIso8601String()),
-      dateCompleted: map['date_completed'] != null ? DateTime.parse(map['date_completed']) : null,
-      usedPartIds: List<String>.from(map['used_part_ids'] ?? []),
-      technicianNotes: map['technician_notes'],
-      customerNotes: map['customer_notes'],
-      updatedAt: map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      dateCreated: DateTime.parse(json['date_created']),
+      dateCompleted: json['date_completed'] != null 
+          ? DateTime.parse(json['date_completed']) 
+          : null,
+      usedPartIds: List<String>.from(json['used_part_ids'] ?? []),
+      technicianNotes: json['technician_notes'],
+      customerNotes: json['customer_notes'],
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : null,
+      cost: (json['cost'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -92,12 +98,14 @@ class RepairTicket {
       'problem': problem,
       'diagnosis': diagnosis,
       'estimated_cost': estimatedCost,
-      'status': status.name,
+      'status': status.toString().split('.').last,
       'date_created': dateCreated.toIso8601String(),
       'date_completed': dateCompleted?.toIso8601String(),
       'used_part_ids': usedPartIds,
       'technician_notes': technicianNotes,
       'customer_notes': customerNotes,
+      'updated_at': updatedAt?.toIso8601String(),
+      'cost': cost,
     };
   }
 
@@ -130,6 +138,7 @@ class RepairTicket {
     String? technicianNotes,
     String? customerNotes,
     DateTime? updatedAt,
+    double? cost,
   }) {
     return RepairTicket(
       id: id ?? this.id,
@@ -150,6 +159,7 @@ class RepairTicket {
       technicianNotes: technicianNotes ?? this.technicianNotes,
       customerNotes: customerNotes ?? this.customerNotes,
       updatedAt: updatedAt ?? this.updatedAt,
+      cost: cost ?? this.cost,
     );
   }
 } 

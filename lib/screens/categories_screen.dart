@@ -197,6 +197,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'categories_fab',
         onPressed: () async {
           await showDialog<void>(
             context: context,

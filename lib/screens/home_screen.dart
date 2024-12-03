@@ -18,6 +18,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  DateTime? _lastActivityTime;
+  static const _activityThreshold = Duration(seconds: 1); // Debounce threshold
 
   final List<Widget> _screens = const [
     DashboardScreen(),
@@ -47,10 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Debounced user activity tracking
+  void _handleUserActivity() {
+    final now = DateTime.now();
+    if (_lastActivityTime == null || 
+        now.difference(_lastActivityTime!) > _activityThreshold) {
+      _lastActivityTime = now;
+      AuthService.instance.userActivity();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Listen for session timeout warnings
     AuthService.instance.sessionTimeoutNotifier.addListener(_showSessionWarning);
   }
 
@@ -79,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                AuthService.instance.userActivity();
+                _handleUserActivity();
               },
               child: const Text('Stay Logged In'),
             ),
@@ -92,11 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
     final bottomNavIndex = _selectedIndex >= 5 ? 0 : _selectedIndex;
     
     return GestureDetector(
-      onTap: () => AuthService.instance.userActivity(),
+      onTap: _handleUserActivity, // Use debounced handler
       child: Scaffold(
         appBar: AppBar(
           title: Text(_titles[_selectedIndex]),
@@ -106,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIndex: _selectedIndex,
           onItemTapped: _onItemTapped,
         ),
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: _screens[_selectedIndex],
+        body: IndexedStack( // Use IndexedStack instead of AnimatedSwitcher
+          index: _selectedIndex,
+          children: _screens,
         ),
         bottomNavigationBar: NavigationBar(
           height: 70,

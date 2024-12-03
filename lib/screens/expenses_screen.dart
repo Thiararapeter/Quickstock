@@ -100,11 +100,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       if (searchTerm.isEmpty) {
         _filteredExpenses = List.from(_allExpenses);
       } else {
-        _filteredExpenses = _allExpenses.where((expense) {
-          return expense.name.toLowerCase().contains(searchTerm) ||
+        _filteredExpenses = _allExpenses.where((expense) =>
+              expense.name.toLowerCase().contains(searchTerm) ||
               expense.category.toLowerCase().contains(searchTerm) ||
-              expense.description.toLowerCase().contains(searchTerm);
-        }).toList();
+              (expense.description?.toLowerCase() ?? '').contains(searchTerm)
+            ).toList();
       }
       _sortExpenses();
     });
@@ -450,7 +450,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addEditExpense(),
+        heroTag: 'expenses_fab',
+        onPressed: _addEditExpense,
         icon: const Icon(Icons.add),
         label: const Text('Add Expense'),
       ),

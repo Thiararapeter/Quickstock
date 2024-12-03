@@ -224,19 +224,12 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                           'Date',
                           DateFormat('MMMM d, y').format(expense.date),
                         ),
-                        if (expense.description.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          const Text(
+                        // Description section (only show if not empty)
+                        if (expense.description?.isNotEmpty ?? false) ...[
+                          const Divider(height: 24),
+                          _buildInfoRow(
                             'Description',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            expense.description,
-                            style: const TextStyle(fontSize: 16),
+                            expense.description ?? '',
                           ),
                         ],
                       ],
@@ -250,4 +243,4 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       ),
     );
   }
-} 
+}

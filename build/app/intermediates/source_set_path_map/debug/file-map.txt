@@ -42,8 +42,7 @@ com.thiarara.quick_stock.app-packaged_res-40 C:\Users\user\Downloads\Quick-stock
 com.thiarara.quick_stock.app-packaged_res-41 C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\packaged_res\debug
 com.thiarara.quick_stock.app-packaged_res-42 C:\Users\user\Downloads\Quick-stock\build\package_info_plus\intermediates\packaged_res\debug
 com.thiarara.quick_stock.app-packaged_res-43 C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\packaged_res\debug
-com.thiarara.quick_stock.app-packaged_res-44 C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\packaged_res\debug
-com.thiarara.quick_stock.app-packaged_res-45 C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\packaged_res\debug
-com.thiarara.quick_stock.app-packaged_res-46 C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\packaged_res\debug
-com.thiarara.quick_stock.app-packaged_res-47 C:\Users\user\Downloads\Quick-stock\build\shared_preferences_android\intermediates\packaged_res\debug
-com.thiarara.quick_stock.app-packaged_res-48 C:\Users\user\Downloads\Quick-stock\build\url_launcher_android\intermediates\packaged_res\debug
+com.thiarara.quick_stock.app-packaged_res-44 C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\packaged_res\debug
+com.thiarara.quick_stock.app-packaged_res-45 C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\packaged_res\debug
+com.thiarara.quick_stock.app-packaged_res-46 C:\Users\user\Downloads\Quick-stock\build\shared_preferences_android\intermediates\packaged_res\debug
+com.thiarara.quick_stock.app-packaged_res-47 C:\Users\user\Downloads\Quick-stock\build\url_launcher_android\intermediates\packaged_res\debug

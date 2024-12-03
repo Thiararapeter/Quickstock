@@ -11,6 +11,7 @@ class InventoryItem {
   final String condition;
   final DateTime dateAdded;
   final DateTime updatedAt;
+  final bool hasWarranty;
 
   InventoryItem({
     required this.id,
@@ -23,6 +24,7 @@ class InventoryItem {
     required this.condition,
     required this.dateAdded,
     DateTime? updatedAt,
+    this.hasWarranty = false,
   }) : updatedAt = updatedAt ?? DateTime.now();
 
   // Add fromJson constructor
@@ -40,6 +42,7 @@ class InventoryItem {
       updatedAt: json['updated_at'] != null 
           ? DateTime.parse(json['updated_at']) 
           : DateTime.now(),
+      hasWarranty: json['has_warranty'] as bool? ?? false,
     );
   }
 
@@ -59,6 +62,7 @@ class InventoryItem {
       'condition': condition,
       'date_added': dateAdded.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'has_warranty': hasWarranty,
     };
   }
 
@@ -74,6 +78,7 @@ class InventoryItem {
     String? condition,
     DateTime? dateAdded,
     DateTime? updatedAt,
+    bool? hasWarranty,
   }) {
     return InventoryItem(
       id: id ?? this.id,
@@ -86,28 +91,9 @@ class InventoryItem {
       condition: condition ?? this.condition,
       dateAdded: dateAdded ?? this.dateAdded,
       updatedAt: updatedAt ?? this.updatedAt,
+      hasWarranty: hasWarranty ?? this.hasWarranty,
     );
   }
-
-  // Add toString method for debugging
-  @override
-  String toString() {
-    return 'InventoryItem(id: $id, name: $name, serialNumber: $serialNumber, '
-        'purchasePrice: $purchasePrice, sellingPrice: $sellingPrice, '
-        'category: $category, quantity: $quantity, condition: $condition, '
-        'dateAdded: $dateAdded, updatedAt: $updatedAt)';
-  }
-
-  // Format price with currency
-  String get formattedPurchasePrice => 
-      NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(purchasePrice);
-  
-  String get formattedSellingPrice => 
-      NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(sellingPrice);
-  
-  // Format date
-  String get formattedDate => 
-      DateFormat('MMM dd, yyyy').format(dateAdded);
 
   // Add toMap method
   Map<String, dynamic> toMap() {
@@ -122,6 +108,27 @@ class InventoryItem {
       'condition': condition,
       'date_added': dateAdded.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'has_warranty': hasWarranty,
     };
   }
+
+  // Add toString method for debugging
+  @override
+  String toString() {
+    return 'InventoryItem(id: $id, name: $name, serialNumber: $serialNumber, '
+        'purchasePrice: $purchasePrice, sellingPrice: $sellingPrice, '
+        'category: $category, quantity: $quantity, condition: $condition, '
+        'dateAdded: $dateAdded, updatedAt: $updatedAt, hasWarranty: $hasWarranty)';
+  }
+
+  // Format price with currency
+  String get formattedPurchasePrice => 
+      NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(purchasePrice);
+  
+  String get formattedSellingPrice => 
+      NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(sellingPrice);
+  
+  // Format date
+  String get formattedDate => 
+      DateFormat('MMM dd, yyyy').format(dateAdded);
 } 

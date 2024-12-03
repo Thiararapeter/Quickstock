@@ -210,6 +210,7 @@ class _RepairsScreenState extends State<RepairsScreen> {
       ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'repairs_fab',
         onPressed: () async {
           final result = await Navigator.push<bool>(
             context,
@@ -222,7 +223,7 @@ class _RepairsScreenState extends State<RepairsScreen> {
           }
         },
         icon: const Icon(Icons.add),
-        label: const Text('New Repair'),
+        label: const Text('Add Repair'),
       ),
     );
   }

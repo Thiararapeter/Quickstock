@@ -685,6 +685,7 @@ class _PartsManagementScreenState extends State<PartsManagementScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'parts_management_fab',
         onPressed: () async {
           await Navigator.push(
             context,

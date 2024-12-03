@@ -166,7 +166,6 @@ class _SalesScreenState extends State<SalesScreen> {
           onUpdateQuantity: (index, delta) {
             try {
               if (index < 0 || index >= _cart.length) return;
-              
               final cartItem = _cart[index];
               final newQuantity = cartItem.quantity + delta;
 
@@ -421,6 +420,7 @@ class _SalesScreenState extends State<SalesScreen> {
               ],
             ),
             child: FloatingActionButton(
+              heroTag: 'sales_cart_fab',
               onPressed: () => _navigateToCart(),
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -487,4 +487,4 @@ class _SalesScreenState extends State<SalesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     );
   }
-} 
+}

@@ -49,20 +49,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     _purchasePriceController = TextEditingController(text: widget.item?.purchasePrice.toString() ?? '');
     _sellingPriceController = TextEditingController(text: widget.item?.sellingPrice.toString() ?? '');
     _quantityController = TextEditingController(text: widget.item?.quantity.toString() ?? '1');
-    _selectedCategory = widget.item?.category ?? (widget.isPart ? 'Parts' : null);
     _condition = widget.item?.condition ?? 'New';
     
     if (!widget.isPart) {
       _loadCategories();
     } else {
-      // For parts, just set the Parts category
       setState(() {
         _categories = ['Parts'];
         _selectedCategory = 'Parts';
       });
     }
     
-    // Check if part is attached to a product
     if (widget.item != null) {
       _checkPartAttachment();
     }
@@ -74,13 +71,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       final categories = await SupabaseDatabase.instance.getCategories();
       if (mounted) {
         setState(() {
-          // Filter out 'Parts' category for products
           _categories = categories.where((cat) => cat != 'Parts').toList();
-          
-          // Set initial category
-          if (widget.item != null) {
-            _selectedCategory = widget.item!.category;
-          }
         });
       }
     } catch (e) {
@@ -175,8 +166,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       );
     }
 
+    String? dropdownValue = _categories.contains(_selectedCategory) ? _selectedCategory : null;
+
     return DropdownButtonFormField<String>(
-      value: _selectedCategory,
+      value: dropdownValue,
       decoration: const InputDecoration(
         labelText: 'Category',
         border: OutlineInputBorder(),
@@ -197,7 +190,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
         if (value == null || value.isEmpty) {
           return 'Please select a category';
         }
-        if (value == 'Parts') {
+        if (!widget.isPart && value == 'Parts') {
           return 'Cannot use Parts category for products';
         }
         return null;

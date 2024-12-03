@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/warranty_list_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/sales_screen.dart';
@@ -20,6 +21,8 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    
     return Drawer(
       child: Column(
         children: [
@@ -49,26 +52,13 @@ class AppDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'contact@thiara.co.ke',
+                    (currentUser?.email ?? 'Not signed in').length > 10
+                        ? '${(currentUser?.email ?? 'Not signed in').substring(0, 10)}...'
+                        : (currentUser?.email ?? 'Not signed in'),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  FutureBuilder<DateTime?>(
-                    future: AuthService.instance.getLastLogin(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox.shrink();
-                      final lastLogin = snapshot.data;
-                      return Text(
-                        'Last login: ${_formatLastLogin(lastLogin)}',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 12,
-                        ),
-                      );
-                    },
                   ),
                 ],
               ),
@@ -110,24 +100,35 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                 ),
-                _buildDrawerItem(
-                  icon: Icons.point_of_sale_outlined,
-                  selectedIcon: Icons.point_of_sale,
-                  label: 'POS',
-                  index: 7,
+                ListTile(
+                  leading: const Icon(Icons.point_of_sale),
+                  title: const Text('POS'),
+                  selected: selectedIndex == 1,
                   onTap: () {
-                    Navigator.push(
-                      context,
+                    Navigator.pop(context); // Close drawer first
+                    onItemTapped(1);
+                    Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (context) => const SalesScreen()),
                     );
                   },
-                  context: context,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.receipt_long),
+                  title: const Text('All Sales'),
+                  selected: selectedIndex == 2,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer first
+                    onItemTapped(2);
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => const SalesReportScreen()),
+                    );
+                  },
                 ),
                 _buildDrawerItem(
                   icon: Icons.settings_outlined,
                   selectedIcon: Icons.settings,
-                  label: 'POS Settings',
-                  index: 8,
+                  label: 'Settings',
+                  index: 9,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -153,21 +154,21 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.inventory_2_outlined,
                   selectedIcon: Icons.inventory_2,
                   label: 'Products',
-                  index: 1,
+                  index: 3,
                   context: context,
                 ),
                 _buildDrawerItem(
                   icon: Icons.build_outlined,
                   selectedIcon: Icons.build,
                   label: 'Parts',
-                  index: 2,
+                  index: 4,
                   context: context,
                 ),
                 _buildDrawerItem(
                   icon: Icons.category_outlined,
                   selectedIcon: Icons.category,
                   label: 'Categories',
-                  index: 3,
+                  index: 5,
                   context: context,
                 ),
 
@@ -187,7 +188,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.home_repair_service_outlined,
                   selectedIcon: Icons.home_repair_service,
                   label: 'Repairs',
-                  index: 4,
+                  index: 6,
                   context: context,
                 ),
 
@@ -207,7 +208,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.assessment_outlined,
                   selectedIcon: Icons.assessment,
                   label: 'Reports',
-                  index: 9,  // New index for reports
+                  index: 10,  // New index for reports
                   onTap: () {
                     Navigator.push(
                       context,
@@ -235,7 +236,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.account_balance_wallet_outlined,
                   selectedIcon: Icons.account_balance_wallet,
                   label: 'Expenses',
-                  index: 6,
+                  index: 7,
                   context: context,
                 ),
 
@@ -257,7 +258,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.precision_manufacturing_outlined,
                   selectedIcon: Icons.precision_manufacturing,
                   label: 'Assets',
-                  index: 5,
+                  index: 8,
                   context: context,
                 ),
 
@@ -265,10 +266,9 @@ class AppDrawer extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.verified_user),
                   title: const Text('Warranty Management'),
-                  onTap: () async {
-                    Navigator.pop(context); // Close drawer
-                    await Navigator.push(
-                      context,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer first
+                    Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => const WarrantyListScreen(),
                       ),
@@ -281,8 +281,8 @@ class AppDrawer extends StatelessWidget {
                   leading: const Icon(Icons.info_outline),
                   title: const Text('About'),
                   onTap: () {
-                    Navigator.push(
-                      context,
+                    Navigator.pop(context); // Close drawer first
+                    Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (context) => const AboutScreen()),
                     );
                   },
@@ -298,6 +298,7 @@ class AppDrawer extends StatelessWidget {
               style: TextStyle(color: Colors.red),
             ),
             onTap: () async {
+              Navigator.pop(context); // Close drawer first
               await AuthService.instance.signOut();
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/');

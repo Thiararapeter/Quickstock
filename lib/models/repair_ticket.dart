@@ -104,7 +104,7 @@ class RepairTicket {
       'used_part_ids': usedPartIds,
       'technician_notes': technicianNotes,
       'customer_notes': customerNotes,
-      'updated_at': updatedAt?.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
       'cost': cost,
     };
   }

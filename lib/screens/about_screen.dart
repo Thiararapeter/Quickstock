@@ -11,32 +11,28 @@ class AboutScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('About'),
       ),
-      body: FutureBuilder<String>(
-        future: AppInfo.getVersionInfo(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                'Quick Stock',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                snapshot.data!,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            'Quick Stock',
+            style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          FutureBuilder<String>(
+            future: AppInfo.getVersionInfo(),
+            builder: (context, snapshot) {
+              return Text(
+                snapshot.data ?? 'Version 1.0.201',
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              _buildAboutContent(context),
-            ],
-          );
-        },
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildAboutContent(context),
+        ],
       ),
     );
   }
@@ -51,7 +47,7 @@ class AboutScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         const Text(
-          'Quick Stock is an inventory management system designed to help businesses efficiently track and manage their stock, repairs, warranties, and assets.',
+          'Quick Stock is an inventory management system designed to help businesses efficiently track and manage their stock, repairs, warranties, assets, and sales with comprehensive reporting capabilities.',
         ),
         const SizedBox(height: 24),
         Text(
@@ -60,34 +56,6 @@ class AboutScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _buildFeaturesList(),
-        const SizedBox(height: 24),
-        Text(
-          'Copyright',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          '© 2024 Thiarara. All rights reserved.\n'
-          'Quick Stock is proprietary software. Unauthorized copying, modification, distribution, or use is strictly prohibited.',
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Third-Party Packages',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        _buildPackagesList(),
-        const SizedBox(height: 24),
-        InkWell(
-          onTap: () => _launchURL('https://github.com/Thiararapeter/Quick-stock-Inventory'),
-          child: Text(
-            'View source code on GitHub',
-            style: TextStyle(
-              color: Theme.of(context).primaryColor,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
         const SizedBox(height: 24),
         Text(
           'Contact',
@@ -115,6 +83,16 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 24),
+        Text(
+          'Copyright',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          ' 2024 Thiarara. All rights reserved.\n'
+          'Quick Stock is proprietary software. Unauthorized copying, modification, distribution, or use is strictly prohibited.',
+        ),
       ],
     );
   }
@@ -123,29 +101,21 @@ class AboutScreen extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('• Product inventory management'),
-        Text('• Parts tracking'),
+        Text('• Product inventory management with barcode support'),
+        Text('• Parts tracking and management'),
         Text('• Category organization'),
+        Text('• Point of Sale (POS) system'),
+        Text('• Sales tracking and management'),
         Text('• Repair service management'),
-        Text('• Warranty tracking'),
+        Text('• Warranty tracking system'),
         Text('• Asset management'),
         Text('• Expense tracking'),
-        Text('• Real-time updates'),
+        Text('• Comprehensive reporting system'),
+        Text('• Data export to Excel and PDF'),
+        Text('• Real-time updates and sync'),
         Text('• Offline capabilities'),
-      ],
-    );
-  }
-
-  Widget _buildPackagesList() {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('• supabase_flutter for backend services'),
-        Text('• package_info_plus for app information'),
-        Text('• url_launcher for external links'),
-        Text('• pdf and flutter_pdfview for PDF handling'),
-        Text('• connectivity_plus for network status'),
-        Text('• shared_preferences for local storage'),
+        Text('• Multi-user support'),
+        Text('• Data backup and recovery'),
       ],
     );
   }
@@ -156,4 +126,4 @@ class AboutScreen extends StatelessWidget {
       await launchUrl(url);
     }
   }
-} 
+}

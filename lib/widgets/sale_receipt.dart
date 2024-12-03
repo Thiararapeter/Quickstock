@@ -7,10 +7,7 @@ import 'dart:io';
 import '../models/cart_item.dart';
 import 'package:intl/intl.dart';
 import 'package:barcode/barcode.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/services.dart';
 import '../services/supabase_database.dart';
 import 'package:app_settings/app_settings.dart';
 
@@ -69,26 +66,6 @@ class _SaleReceiptState extends State<SaleReceipt> {
 
   Future<void> _downloadReceipt() async {
     try {
-      // Request both storage permissions
-      final storageStatus = await Permission.storage.request();
-      final manageStatus = await Permission.manageExternalStorage.request();
-      
-      if (!storageStatus.isGranted || !manageStatus.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Storage permission is required to save receipts'),
-              backgroundColor: Colors.red,
-              action: SnackBarAction(
-                label: 'Settings',
-                onPressed: AppSettings.openAppSettings,
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
       final pdf = await _generatePdf();
       
       // Get the downloads directory
@@ -231,7 +208,7 @@ class _SaleReceiptState extends State<SaleReceipt> {
                 ...widget.cart.map(
                   (item) => pw.TableRow(
                     children: [
-                      pw.Text(item.item.name,
+                      pw.Text(item.item.name + '\nS/N: ' + item.item.serialNumber + '\nWarranty: ' + (item.item.hasWarranty ? 'Yes' : 'No'),
                         style: pw.TextStyle(font: regularFont, fontSize: 8)),
                       pw.Text('${item.quantity}',
                         style: pw.TextStyle(font: regularFont, fontSize: 8)),
@@ -353,23 +330,7 @@ class _SaleReceiptState extends State<SaleReceipt> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      if (Platform.isAndroid) {
-                        final status = await Permission.storage.request();
-                        if (status.isGranted) {
-                          await _downloadReceipt();
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Storage permission required to save receipt'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      } else {
-                        await _downloadReceipt();
-                      }
+                      await _downloadReceipt();
                     },
                     icon: const Icon(Icons.download, size: 20),
                     label: const Text('Download'),
@@ -395,4 +356,4 @@ class _SaleReceiptState extends State<SaleReceipt> {
       ),
     );
   }
-} 
+}

@@ -45,6 +45,78 @@ class SupabaseDatabase {
     }
   }
 
+  Future<void> addCategory(String name) async {
+    try {
+      // Only check for exact "Parts" category name
+      if (name == 'Parts') {
+        throw Exception('Cannot create "Parts" as it is a reserved category name');
+      }
+
+      await _supabase
+          .from('categories')
+          .insert({
+            'name': name,
+            'is_system': false,
+          });
+      
+      developer.log('Category added successfully: $name');
+    } catch (e) {
+      developer.log('Error adding category: $e', error: e);
+      if (e is PostgrestException) {
+        if (e.message.contains('duplicate key')) {
+          throw Exception('A category with this name already exists');
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCategory(String name) async {
+    try {
+      // Check if any items are using this category
+      final items = await _supabase
+          .from('inventory')
+          .select('id')
+          .eq('category', name);
+      
+      if (items.isNotEmpty) {
+        throw Exception('Cannot delete category that is in use');
+      }
+
+      await _supabase
+          .from('categories')
+          .delete()
+          .eq('name', name)
+          .eq('is_system', false);  // Only allow deleting user-created categories
+    } catch (e) {
+      developer.log('Error deleting category: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> updateCategory(String oldName, String newName) async {
+    try {
+      // Check if new category name is reserved
+      if (newName.toLowerCase() == 'parts') {
+        throw Exception('Cannot rename to "Parts" as it is a reserved category name');
+      }
+
+      await _supabase
+          .from('categories')
+          .update({'name': newName})
+          .eq('name', oldName)
+          .eq('is_system', false);  // Only allow updating user-created categories
+    } catch (e) {
+      developer.log('Error updating category: $e', error: e);
+      if (e is PostgrestException) {
+        if (e.message.contains('duplicate key')) {
+          throw Exception('A category with this name already exists');
+        }
+      }
+      rethrow;
+    }
+  }
+
   // Inventory methods
   Future<List<InventoryItem>> getAllItems() async {
     try {
@@ -65,37 +137,23 @@ class SupabaseDatabase {
 
   Future<void> insertItem(InventoryItem item) async {
     try {
-      developer.log('Inserting new item: ${item.id}');
-      final itemData = item.toMap();
-      itemData['id'] = const Uuid().v4();
-      
-      // Allow items to have "Parts" category, but validate other categories exist
-      if (item.category != 'Parts') {
-        final categories = await getCategories();
-        if (!categories.contains(item.category)) {
-          throw Exception('Invalid category. Please select a valid category.');
-        }
-      }
+      // Insert the item
+      await _supabase.from('inventory').insert(item.toMap());
+      developer.log('Product inserted successfully');
 
-      await _supabase
-          .from('inventory')
-          .insert(itemData);
+      // Add a small delay to ensure the product is saved
+      await Future.delayed(const Duration(milliseconds: 500));
 
+      // Add history after successful insertion
+      await addHistory(
+        item.id,
+        'PRODUCT_CREATED',
+        'Product created: ${item.name} with price ${item.purchasePrice}',
+        newPrice: item.purchasePrice,
+      );
     } catch (e) {
       developer.log('Error inserting item: $e', error: e);
-      if (e is PostgrestException) {
-        if (e.message.contains('foreign key constraint')) {
-          throw Exception('Invalid category. Please select a valid category.');
-        } else if (e.message.contains('duplicate key')) {
-          throw Exception('An item with this ID already exists.');
-        } else if (e.message.contains('not-null')) {
-          throw Exception('Please fill in all required fields.');
-        }
-        throw Exception('Database error: ${e.message}');
-      } else if (e.toString().contains('JWTError')) {
-        throw Exception('Your session has expired. Please log in again.');
-      }
-      throw Exception('Failed to save item: ${e.toString()}');
+      rethrow;
     }
   }
 
@@ -127,7 +185,7 @@ class SupabaseDatabase {
         // updated_at is handled by database trigger
       };
       
-      // Allow items to have "Parts" category, but validate other categories exist
+      // Validate category
       if (item.category != 'Parts') {
         final categories = await getCategories();
         if (!categories.contains(item.category)) {
@@ -261,6 +319,21 @@ class SupabaseDatabase {
     }
   }
 
+  Future<InventoryItem?> getItem(String id) async {
+    try {
+      final response = await _supabase
+          .from('inventory')
+          .select()
+          .eq('id', id)
+          .single();
+      
+      return response != null ? InventoryItem.fromMap(response) : null;
+    } catch (e) {
+      developer.log('Error getting item: $e', error: e);
+      rethrow;
+    }
+  }
+
   // Product Parts methods
   Future<List<InventoryItem>> getProductParts(String productId) async {
     final response = await _supabase
@@ -285,7 +358,11 @@ class SupabaseDatabase {
           .from('inventory')
           .select()
           .eq('id', partId)
-          .single();
+          .maybeSingle(); // Use maybeSingle to handle no or multiple rows
+      
+      if (partResponse == null) {
+        throw Exception('Part not found');
+      }
       
       final part = InventoryItem.fromMap(partResponse);
       
@@ -375,253 +452,26 @@ class SupabaseDatabase {
     double? newPrice,
   }) async {
     try {
-      await _supabase.from('product_history').insert({
+      // Create the history entry without verification
+      final historyData = {
         'product_id': productId,
         'part_id': partId,
         'action_type': actionType,
         'description': description,
         'old_price': oldPrice,
         'new_price': newPrice,
-        // Let Postgres handle the date
-      });
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await _supabase
+          .from('product_history')
+          .insert(historyData);
+
+      developer.log('History added successfully');
     } catch (e) {
       developer.log('Error adding history: $e', error: e);
-      if (e is PostgrestException) {
-        throw Exception('Database error: ${e.message}');
-      }
-      throw Exception('Failed to add history: ${e.toString()}');
-    }
-  }
-
-  // Add this method
-  Future<void> addCategory(String name) async {
-    try {
-      // Only check for exact "Parts" category name
-      if (name == 'Parts') {
-        throw Exception('Cannot create "Parts" as it is a reserved category name');
-      }
-
-      await _supabase
-          .from('categories')
-          .insert({
-            'name': name,
-            'is_system': false,
-          });
-      
-      developer.log('Category added successfully: $name');
-    } catch (e) {
-      developer.log('Error adding category: $e', error: e);
-      if (e is PostgrestException) {
-        if (e.message.contains('duplicate key')) {
-          throw Exception('A category with this name already exists');
-        }
-      }
-      rethrow;
-    }
-  }
-
-  Future<bool> hasData() async {
-    try {
-      final response = await _supabase
-          .from('inventory')
-          .select('id')
-          .limit(1);
-      return response.isNotEmpty;
-    } catch (e) {
-      developer.log('Error checking for data: $e', error: e);
-      return false;
-    }
-  }
-
-  Future<bool> isPartUsedInProduct(String partId) async {
-    try {
-      final response = await _supabase
-          .from('product_parts')
-          .select()
-          .eq('part_id', partId)
-          .limit(1);
-      return response.isNotEmpty;
-    } catch (e) {
-      developer.log('Error checking if part is used: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<List<InventoryItem>> getUnattachedProducts() async {
-    try {
-      // First get all part IDs that are attached to products
-      final attachedPartsResponse = await _supabase
-          .from('product_parts')
-          .select('part_id');
-      
-      final attachedPartIds = attachedPartsResponse
-          .map((row) => row['part_id'] as String)
-          .toList();
-
-      // Then get all parts that are not in the attached parts list
-      final response = await _supabase
-          .from('inventory')
-          .select()
-          .eq('category', 'Parts')
-          .not('id', 'in', attachedPartIds.isEmpty ? [''] : attachedPartIds);
-
-      return response.map<InventoryItem>((row) => InventoryItem.fromMap(row)).toList();
-    } catch (e) {
-      developer.log('Error getting unattached products: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<List<InventoryItem>> getProductsWithoutPart() async {
-    try {
-      final response = await _supabase
-          .from('inventory')
-          .select()
-          .neq('category', 'Parts');
-      
-      return response.map<InventoryItem>((row) => InventoryItem.fromMap(row)).toList();
-    } catch (e) {
-      developer.log('Error fetching products: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<InventoryItem?> getItem(String id) async {
-    try {
-      final response = await _supabase
-          .from('inventory')
-          .select()
-          .eq('id', id)
-          .single();
-      
-      return InventoryItem.fromMap(response);
-    } catch (e) {
-      developer.log('Error getting item: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getPartHistory(String productId) async {
-    try {
-      final response = await _supabase
-          .from('product_history')
-          .select()
-          .eq('product_id', productId)
-          .order('created_at', ascending: false);
-      
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      developer.log('Error getting part history: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<void> deleteCategory(String name) async {
-    try {
-      // Check if any items are using this category
-      final items = await _supabase
-          .from('inventory')
-          .select('id')
-          .eq('category', name);
-      
-      if (items.isNotEmpty) {
-        throw Exception('Cannot delete category that is in use');
-      }
-
-      await _supabase
-          .from('categories')
-          .delete()
-          .eq('name', name)
-          .eq('is_system', false);  // Only allow deleting user-created categories
-    } catch (e) {
-      developer.log('Error deleting category: $e', error: e);
-      rethrow;
-    }
-  }
-
-  Future<void> updateCategory(String oldName, String newName) async {
-    try {
-      // Check if new category name is reserved
-      if (newName.toLowerCase() == 'parts') {
-        throw Exception('Cannot rename to "Parts" as it is a reserved category name');
-      }
-
-      await _supabase
-          .from('categories')
-          .update({'name': newName})
-          .eq('name', oldName)
-          .eq('is_system', false);  // Only allow updating user-created categories
-    } catch (e) {
-      developer.log('Error updating category: $e', error: e);
-      if (e is PostgrestException) {
-        if (e.message.contains('duplicate key')) {
-          throw Exception('A category with this name already exists');
-        }
-      }
-      rethrow;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getProductHistory(String productId) async {
-    try {
-      // First, get the creation history
-      final creationHistory = await _supabase
-          .from('product_history')
-          .select('''
-            id,
-            action_type,
-            description,
-            old_price,
-            new_price,
-            created_at,
-            inventory!part_id (
-              id,
-              name,
-              serial_number
-            )
-          ''')
-          .eq('product_id', productId)
-          .eq('action_type', 'PRODUCT_CREATED')
-          .order('created_at', ascending: false);
-
-      // Then get the last 3 non-creation history items
-      final recentHistory = await _supabase
-          .from('product_history')
-          .select('''
-            id,
-            action_type,
-            description,
-            old_price,
-            new_price,
-            created_at,
-            inventory!part_id (
-              id,
-              name,
-              serial_number
-            )
-          ''')
-          .eq('product_id', productId)
-          .neq('action_type', 'PRODUCT_CREATED')
-          .order('created_at', ascending: false)
-          .limit(3);
-      
-      // Combine both lists with creation history first
-      final combinedHistory = [
-        ...List<Map<String, dynamic>>.from(creationHistory),
-        ...List<Map<String, dynamic>>.from(recentHistory),
-      ];
-
-      // Sort by created_at in descending order
-      combinedHistory.sort((a, b) {
-        final dateA = DateTime.parse(a['created_at']);
-        final dateB = DateTime.parse(b['created_at']);
-        return dateB.compareTo(dateA);
-      });
-      
-      return combinedHistory;
-    } catch (e) {
-      developer.log('Error getting product history: $e', error: e);
-      rethrow;
+      // Don't throw the error as history is not critical
+      // Just log it and continue
     }
   }
 
@@ -694,6 +544,123 @@ class SupabaseDatabase {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getPartHistory(String productId) async {
+    try {
+      final response = await _supabase
+          .from('product_history')
+          .select()
+          .eq('product_id', productId)
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      developer.log('Error getting part history: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getProductHistory(String productId) async {
+    try {
+      // First, get the creation history
+      final creationHistory = await _supabase
+          .from('product_history')
+          .select('''
+            id,
+            action_type,
+            description,
+            old_price,
+            new_price,
+            created_at,
+            inventory!part_id (
+              id,
+              name,
+              serial_number
+            )
+          ''')
+          .eq('product_id', productId)
+          .eq('action_type', 'PRODUCT_CREATED')
+          .order('created_at', ascending: false);
+
+      // Then get the last 3 non-creation history items
+      final recentHistory = await _supabase
+          .from('product_history')
+          .select('''
+            id,
+            action_type,
+            description,
+            old_price,
+            new_price,
+            created_at,
+            inventory!part_id (
+              id,
+              name,
+              serial_number
+            )
+          ''')
+          .eq('product_id', productId)
+          .neq('action_type', 'PRODUCT_CREATED')
+          .order('created_at', ascending: false)
+          .limit(3);
+      
+      // Combine both lists with creation history first
+      final combinedHistory = [
+        ...List<Map<String, dynamic>>.from(creationHistory),
+        ...List<Map<String, dynamic>>.from(recentHistory),
+      ];
+
+      // Sort by created_at in descending order
+      combinedHistory.sort((a, b) {
+        final dateA = DateTime.parse(a['created_at']);
+        final dateB = DateTime.parse(b['created_at']);
+        return dateB.compareTo(dateA);
+      });
+      
+      return combinedHistory;
+    } catch (e) {
+      developer.log('Error getting product history: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<bool> isPartUsedInProduct(String partId) async {
+    try {
+      final response = await _supabase
+          .from('product_parts')
+          .select()
+          .eq('part_id', partId)
+          .limit(1);
+      return response.isNotEmpty;
+    } catch (e) {
+      developer.log('Error checking if part is used: $e', error: e);
+      rethrow;
+    }
+  }
+
+  Future<List<InventoryItem>> getUnattachedProducts() async {
+    try {
+      // First get all part IDs that are attached to products
+      final attachedPartsResponse = await _supabase
+          .from('product_parts')
+          .select('part_id');
+      
+      final attachedPartIds = attachedPartsResponse
+          .map((row) => row['part_id'] as String)
+          .toList();
+
+      // Then get all parts that are not in the attached parts list
+      final response = await _supabase
+          .from('inventory')
+          .select()
+          .eq('category', 'Parts')
+          .not('id', 'in', attachedPartIds.isEmpty ? [''] : attachedPartIds);
+
+      return response.map<InventoryItem>((row) => InventoryItem.fromMap(row)).toList();
+    } catch (e) {
+      developer.log('Error getting unattached products: $e', error: e);
+      rethrow;
+    }
+  }
+
   // Repair Management Methods
   Future<String> generateTicketNumber() async {
     try {
@@ -724,16 +691,27 @@ class SupabaseDatabase {
 
   Future<RepairTicket> createRepairTicket(RepairTicket ticket) async {
     try {
+      developer.log('Creating repair ticket...');
       final response = await _supabase
           .from('repair_tickets')
           .insert(ticket.toMap())
           .select()
           .single();
       
+      developer.log('Repair ticket created successfully');
       return RepairTicket.fromJson(response);
     } catch (e) {
       developer.log('Error creating repair ticket: $e', error: e);
       if (e is PostgrestException) {
+        if (e.code == '23502') { // not-null violation
+          throw Exception('Required fields cannot be empty');
+        } else if (e.code == '23505') { // unique violation
+          throw Exception('A ticket with this number already exists');
+        } else if (e.code == '23503') { // foreign key violation
+          throw Exception('Invalid reference to another record');
+        } else if (e.code == '23514') { // check constraint violation
+          throw Exception('Invalid status value');
+        }
         throw Exception('Database error: ${e.message}');
       }
       throw Exception('Failed to create repair ticket: ${e.toString()}');
@@ -742,6 +720,7 @@ class SupabaseDatabase {
 
   Future<RepairTicket> updateRepairTicket(RepairTicket ticket) async {
     try {
+      developer.log('Updating repair ticket...');
       final response = await _supabase
           .from('repair_tickets')
           .update(ticket.toMap())
@@ -749,10 +728,20 @@ class SupabaseDatabase {
           .select()
           .single();
       
+      developer.log('Repair ticket updated successfully');
       return RepairTicket.fromJson(response);
     } catch (e) {
       developer.log('Error updating repair ticket: $e', error: e);
       if (e is PostgrestException) {
+        if (e.code == '23502') { // not-null violation
+          throw Exception('Required fields cannot be empty');
+        } else if (e.code == '23505') { // unique violation
+          throw Exception('A ticket with this number already exists');
+        } else if (e.code == '23503') { // foreign key violation
+          throw Exception('Invalid reference to another record');
+        } else if (e.code == '23514') { // check constraint violation
+          throw Exception('Invalid status value');
+        }
         throw Exception('Database error: ${e.message}');
       }
       throw Exception('Failed to update repair ticket: ${e.toString()}');
@@ -958,20 +947,56 @@ class SupabaseDatabase {
 
   Future<void> addExpense(Expense expense) async {
     try {
-      developer.log('Adding expense: ${expense.id}');
-      final expenseData = expense.toJson();
+      developer.log('Adding expense with data: ${expense.toJson()}');
       
-      await _supabase
+      // First verify the table structure
+      final tableInfo = await _supabase
           .from('expenses')
-          .insert(expenseData);
+          .select('id, name, date, category, amount, description, created_at, updated_at, user_id')
+          .limit(1);
+      
+      developer.log('Table structure verified: ${tableInfo.toString()}');
+      
+      // Prepare the data explicitly matching the schema
+      final data = {
+        'id': expense.id,
+        'name': expense.name,
+        'date': expense.date.toIso8601String(),
+        'category': expense.category,
+        'amount': expense.amount,
+        'description': expense.description,
+        'user_id': expense.userId,
+      };
+      
+      developer.log('Inserting expense with data: $data');
+      
+      final response = await _supabase
+          .from('expenses')
+          .insert(data)
+          .select()
+          .single();
           
-    } catch (e) {
-      developer.log('Error adding expense: $e', error: e);
+      developer.log('Expense added successfully: $response');
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error adding expense: $e\nStack trace: $stackTrace',
+        error: e,
+        stackTrace: stackTrace
+      );
+      
       if (e is PostgrestException) {
-        if (e.message.contains('foreign key constraint')) {
-          throw Exception('Invalid category. Please select a valid category.');
-        } else if (e.message.contains('not-null')) {
-          throw Exception('Please fill in all required fields.');
+        if (e.code == 'PGRST204') {
+          // Try to get more detailed schema information
+          try {
+            final columns = await _supabase
+                .from('expenses')
+                .select()
+                .limit(1);
+            developer.log('Available columns: ${columns.toString()}');
+          } catch (schemaError) {
+            developer.log('Error getting schema: $schemaError');
+          }
+          throw Exception('Database schema error. Please try restarting the app. If the problem persists, contact support.');
         }
         throw Exception('Database error: ${e.message}');
       }
@@ -981,21 +1006,56 @@ class SupabaseDatabase {
 
   Future<void> updateExpense(Expense expense) async {
     try {
-      developer.log('Updating expense: ${expense.id}');
-      final expenseData = expense.toJson();
+      developer.log('Updating expense with data: ${expense.toJson()}');
       
-      await _supabase
+      // First verify the table structure
+      final tableInfo = await _supabase
           .from('expenses')
-          .update(expenseData)
-          .eq('id', expense.id);
+          .select('id, name, date, category, amount, description, created_at, updated_at, user_id')
+          .limit(1);
+      
+      developer.log('Table structure verified: ${tableInfo.toString()}');
+      
+      // Prepare the data explicitly matching the schema
+      final data = {
+        'name': expense.name,
+        'date': expense.date.toIso8601String(),
+        'category': expense.category,
+        'amount': expense.amount,
+        'description': expense.description,
+        'user_id': expense.userId,
+      };
+      
+      developer.log('Updating expense with data: $data');
+      
+      final response = await _supabase
+          .from('expenses')
+          .update(data)
+          .eq('id', expense.id)
+          .select()
+          .single();
           
-    } catch (e) {
-      developer.log('Error updating expense: $e', error: e);
+      developer.log('Expense updated successfully: $response');
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error updating expense: $e\nStack trace: $stackTrace',
+        error: e,
+        stackTrace: stackTrace
+      );
+      
       if (e is PostgrestException) {
-        if (e.message.contains('foreign key constraint')) {
-          throw Exception('Invalid category. Please select a valid category.');
-        } else if (e.message.contains('not-null')) {
-          throw Exception('Please fill in all required fields.');
+        if (e.code == 'PGRST204') {
+          // Try to get more detailed schema information
+          try {
+            final columns = await _supabase
+                .from('expenses')
+                .select()
+                .limit(1);
+            developer.log('Available columns: ${columns.toString()}');
+          } catch (schemaError) {
+            developer.log('Error getting schema: $schemaError');
+          }
+          throw Exception('Database schema error. Please try restarting the app. If the problem persists, contact support.');
         }
         throw Exception('Database error: ${e.message}');
       }

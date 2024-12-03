@@ -1,6 +1,6 @@
 -- Merging decision tree log ---
 application
-INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:8:5-42:19
+INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:5:5-38:19
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml
 MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-20:19
 MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-20:19
@@ -31,8 +31,8 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\us
 	android:name
 		INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml
 manifest
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:1:1-59:12
-MERGED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:1:1-59:12
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:1:1-55:12
+MERGED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:1:1-55:12
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml:1:1-7:12
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml:1:1-7:12
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml:1:1-7:12
@@ -45,7 +45,6 @@ MERGED from [:flutter_plugin_android_lifecycle] C:\Users\user\Downloads\Quick-st
 MERGED from [:open_file_android] C:\Users\user\Downloads\Quick-stock\build\open_file_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-22:12
 MERGED from [:package_info_plus] C:\Users\user\Downloads\Quick-stock\build\package_info_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
-MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
 MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-19:12
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-35:12
 MERGED from [:shared_preferences_android] C:\Users\user\Downloads\Quick-stock\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
@@ -114,46 +113,30 @@ uses-permission#android.permission.ACCESS_WIFI_STATE
 ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:4:5-75
 	android:name
 		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:4:22-73
-uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:5:5-80
-	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:5:22-78
-uses-permission#android.permission.READ_EXTERNAL_STORAGE
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:6:5-79
-MERGED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-9:38
-MERGED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-9:38
-	android:maxSdkVersion
-		ADDED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:9:9-35
-	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:6:22-77
-uses-permission#android.permission.MANAGE_EXTERNAL_STORAGE
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:7:5-81
-	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:7:22-79
 queries
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:48:5-58:15
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:44:5-54:15
 MERGED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:11:5-17:15
 MERGED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:11:5-17:15
 intent#action:name:android.intent.action.PROCESS_TEXT+data:mimeType:text/plain
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:49:9-52:18
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:45:9-48:18
 action#android.intent.action.PROCESS_TEXT
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:50:13-72
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:46:13-72
 	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:50:21-70
+		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:46:21-70
 data
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:51:13-50
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:47:13-50
 	android:mimeType
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:51:19-48
+		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:47:19-48
 intent#action:name:android.intent.action.SEND+data:mimeType:*/*
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:53:9-56:18
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:49:9-52:18
 action#android.intent.action.SEND
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:54:13-65
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:50:13-65
 	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:54:21-62
+		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:50:21-62
 package#com.whatsapp
-ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:57:9-48
+ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:53:9-48
 	android:name
-		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:57:18-45
+		ADDED from C:\Users\user\Downloads\Quick-stock\android\app\src\main\AndroidManifest.xml:53:18-45
 uses-sdk
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml
@@ -176,8 +159,6 @@ MERGED from [:package_info_plus] C:\Users\user\Downloads\Quick-stock\build\packa
 MERGED from [:package_info_plus] C:\Users\user\Downloads\Quick-stock\build\package_info_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:path_provider_android] C:\Users\user\Downloads\Quick-stock\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
-MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
-MERGED from [:permission_handler_android] C:\Users\user\Downloads\Quick-stock\build\permission_handler_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:printing] C:\Users\user\Downloads\Quick-stock\build\printing\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
 MERGED from [:share_plus] C:\Users\user\Downloads\Quick-stock\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
@@ -270,6 +251,12 @@ MERGED from [com.github.mhiew:pdfium-android:1.9.2] C:\Users\user\.gradle\caches
 		INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from C:\Users\user\Downloads\Quick-stock\android\app\src\debug\AndroidManifest.xml
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-9:38
+	android:maxSdkVersion
+		ADDED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:9:9-35
+	android:name
+		ADDED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:8:9-64
 intent#action:name:android.intent.action.GET_CONTENT+data:mimeType:*/*
 ADDED from [:file_picker] C:\Users\user\Downloads\Quick-stock\build\file_picker\intermediates\merged_manifest\debug\AndroidManifest.xml:12:9-16:18
 action#android.intent.action.GET_CONTENT

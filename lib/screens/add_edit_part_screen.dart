@@ -225,44 +225,33 @@ class _AddEditPartScreenState extends State<AddEditPartScreen> {
   Future<void> _saveItem() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
       try {
-        final item = InventoryItem(
+        final newPart = InventoryItem(
           id: widget.part?.id ?? generateUniqueId(),
           name: _nameController.text.trim(),
           serialNumber: _serialNumberController.text.trim(),
           purchasePrice: double.parse(_purchasePriceController.text),
           sellingPrice: double.parse(_sellingPriceController.text),
-          category: 'Parts',  // Always Parts for this screen
           quantity: int.parse(_quantityController.text),
           condition: _condition,
+          category: 'Parts',
           dateAdded: widget.part?.dateAdded ?? DateTime.now(),
         );
 
-        if (widget.part != null) {
-          await SupabaseDatabase.instance.updateItem(item);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Part updated successfully')),
-            );
-          }
+        if (widget.part == null) {
+          await SupabaseDatabase.instance.insertItem(newPart);
         } else {
-          await SupabaseDatabase.instance.insertItem(item);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Part created successfully')),
-            );
-          }
+          await SupabaseDatabase.instance.updateItem(newPart);
         }
 
         if (mounted) {
-          Navigator.pop(context, true);
+          Navigator.of(context).pop(newPart);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
+              content: Text('Error saving part: $e'),
               backgroundColor: Colors.red,
             ),
           );

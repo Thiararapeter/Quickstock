@@ -94,8 +94,26 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
 
       if (widget.ticket == null) {
         await SupabaseDatabase.instance.createRepairTicket(ticket);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Repair ticket created successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         await SupabaseDatabase.instance.updateRepairTicket(ticket);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Repair ticket updated successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
 
       if (mounted) {
@@ -103,8 +121,33 @@ class _AddEditRepairScreenState extends State<AddEditRepairScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'An error occurred';
+        
+        if (e.toString().contains('not-null')) {
+          errorMessage = 'Please fill in all required fields';
+        } else if (e.toString().contains('unique constraint')) {
+          errorMessage = 'A ticket with this number already exists';
+        } else if (e.toString().contains('violates foreign key')) {
+          errorMessage = 'Invalid reference to another record';
+        } else if (e.toString().contains('check constraint')) {
+          errorMessage = 'Invalid status value';
+        } else {
+          errorMessage = 'Error saving repair ticket: ${e.toString().split(']').last}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving repair: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Dismiss',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
         );
       }
     } finally {

@@ -25,67 +25,81 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   void _loadData() {
-    _productFuture = SupabaseDatabase.instance.getItem(widget.productId);
-    _partsFuture = SupabaseDatabase.instance.getProductParts(widget.productId);
+    setState(() {
+      _productFuture = SupabaseDatabase.instance.getItem(widget.productId);
+      _partsFuture = SupabaseDatabase.instance.getProductParts(widget.productId);
+    });
   }
 
   Future<void> _showAddPartOptions() async {
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Add Part',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+    try {
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Add Part',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.playlist_add),
-                  title: const Text('Select Existing Part'),
-                  onTap: () {
-                    Navigator.pop(context, 'existing');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.add_circle_outline),
-                  title: const Text('Create New Part'),
-                  onTap: () {
-                    Navigator.pop(context, 'new');
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.playlist_add),
+                    title: const Text('Select Existing Part'),
+                    onTap: () {
+                      Navigator.pop(context, 'existing');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.add_circle_outline),
+                    title: const Text('Create New Part'),
+                    onTap: () {
+                      Navigator.pop(context, 'new');
+                    },
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      );
+
+      if (choice == 'existing') {
+        await _addExistingPart();
+      } else if (choice == 'new') {
+        await _createAndAddNewPart();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
           ),
         );
-      },
-    );
-
-    if (choice == 'existing') {
-      await _addExistingPart();
-    } else if (choice == 'new') {
-      await _createAndAddNewPart();
+      }
     }
   }
 
   Future<void> _addExistingPart() async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => const AddPartDialog(),
-    );
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => const AddPartDialog(),
+      );
 
-    if (result != null && mounted) {
-      try {
+      if (result != null && mounted) {
         await SupabaseDatabase.instance.addPartToProduct(
           widget.productId,
           result['partId'],
+          partsCategory: result['partsCategory'],
         );
         
         // Add history record
@@ -96,32 +110,38 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           partId: result['partId'],
         );
         
-        setState(() {
-          _loadData();
-        });
-      } catch (e) {
         if (mounted) {
+          _loadData(); // Refresh the data
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error adding part: $e'),
-              backgroundColor: Colors.red,
+            const SnackBar(
+              content: Text('Part added successfully'),
+              backgroundColor: Colors.green,
             ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding part: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   Future<void> _createAndAddNewPart() async {
-    final result = await Navigator.push<InventoryItem>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddEditPartScreen(),
-      ),
-    );
+    try {
+      final result = await Navigator.push<InventoryItem>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AddEditPartScreen(),
+        ),
+      );
 
-    if (result != null && mounted) {
-      try {
+      if (result != null && mounted) {
         await SupabaseDatabase.instance.addPartToProduct(
           widget.productId,
           result.id,
@@ -135,18 +155,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           partId: result.id,
         );
         
-        setState(() {
-          _loadData();
-        });
-      } catch (e) {
         if (mounted) {
+          _loadData(); // Refresh the data
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error adding part: $e'),
-              backgroundColor: Colors.red,
+            const SnackBar(
+              content: Text('Part added successfully'),
+              backgroundColor: Colors.green,
             ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding part: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -229,6 +255,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'product_details_fab',
           onPressed: _showAddPartOptions,
           child: const Icon(Icons.add),
           tooltip: 'Add Part',

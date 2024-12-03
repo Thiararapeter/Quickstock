@@ -12,9 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:app_settings/app_settings.dart';
-import '../services/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:barcode/barcode.dart';
 
@@ -49,44 +47,6 @@ class _RepairManagementScreenState extends State<RepairManagementScreen> {
   void initState() {
     super.initState();
     _loadRepairs();
-    _requestStoragePermission();
-  }
-
-  Future<void> _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final storageStatus = await Permission.storage.status;
-      final manageStatus = await Permission.manageExternalStorage.status;
-      
-      if (storageStatus.isDenied || manageStatus.isDenied) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Storage Permission Required'),
-            content: const Text(
-              'This app needs storage permission to save PDF files and manage repairs. Would you like to grant permission?'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  openAppSettings();
-                },
-                child: const Text('Open Settings'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await Permission.storage.request();
-                  await Permission.manageExternalStorage.request();
-                },
-                child: const Text('Grant Permission'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
   }
 
   void _filterRepairs(String query) {
@@ -422,7 +382,7 @@ class _RepairManagementScreenState extends State<RepairManagementScreen> {
                                           final scaffoldMessenger = ScaffoldMessenger.of(context);
                                           showDialog(
                                             context: context,
-                                            builder: (dialogContext) => AlertDialog(
+                                            builder: (context) => AlertDialog(
                                               title: const Text('Update Status'),
                                               content: Column(
                                                 mainAxisSize: MainAxisSize.min,
@@ -436,7 +396,7 @@ class _RepairManagementScreenState extends State<RepairManagementScreen> {
                                                     title: Text(status.label),
                                                     selected: repair.status == status,
                                                     onTap: () async {
-                                                      Navigator.pop(dialogContext);
+                                                      Navigator.pop(context);
                                                       try {
                                                         setState(() => _isLoading = true);
                                                         final updatedTicket = repair.copyWith(
@@ -601,23 +561,7 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
                                                         IconButton(
                                                           icon: const Icon(Icons.download, size: 18),
                                                           onPressed: () async {
-                                                            if (Platform.isAndroid) {
-                                                              final status = await Permission.storage.request();
-                                                              if (status.isGranted) {
-                                                                await _printRepairDetails(repair); // This now handles both print and save
-                                                              } else {
-                                                                if (mounted) {
-                                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                                    const SnackBar(
-                                                                      content: Text('Storage permission required to save repair ticket'),
-                                                                      backgroundColor: Colors.red,
-                                                                    ),
-                                                                  );
-                                                                }
-                                                              }
-                                                            } else {
-                                                              await _printRepairDetails(repair);
-                                                            }
+                                                            await _printRepairDetails(repair); // This now handles both print and save
                                                           },
                                                           tooltip: 'Download',
                                                         ),
@@ -808,6 +752,7 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'repair_fab',
         onPressed: () async {
           final result = await Navigator.push<bool>(
             context,
@@ -886,26 +831,6 @@ ${repair.technicianNotes?.isNotEmpty == true ? 'Technician Notes: ${repair.techn
 
   Future<void> _printRepairDetails(RepairTicket repair) async {
     try {
-      // Request both storage permissions
-      final storageStatus = await Permission.storage.request();
-      final manageStatus = await Permission.manageExternalStorage.request();
-      
-      if (!storageStatus.isGranted || !manageStatus.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Storage permission is required to save repair tickets'),
-              backgroundColor: Colors.red,
-              action: SnackBarAction(
-                label: 'Settings',
-                onPressed: AppSettings.openAppSettings,
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
       final pdf = await _generateRepairTicket(repair);
       
       // Get the downloads directory

@@ -419,6 +419,7 @@ class _AssetsListScreenState extends State<AssetsListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'assets_fab',
         onPressed: () async {
           final result = await Navigator.push<bool>(
             context,

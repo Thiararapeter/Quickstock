@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../services/supabase_database.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AddEditExpenseDialog extends StatefulWidget {
   final Expense? expense;
@@ -18,20 +19,8 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
   late TextEditingController _amountController;
   late TextEditingController _descriptionController;
   late DateTime _selectedDate;
-  String _selectedCategory = 'Maintenance';
+  late String _selectedCategory;
   bool _isLoading = false;
-
-  final List<String> _categories = [
-    'Maintenance',
-    'Utilities',
-    'Supplies',
-    'Rent',
-    'Salaries',
-    'Marketing',
-    'Transportation',
-    'Insurance',
-    'Misc',
-  ];
 
   @override
   void initState() {
@@ -44,7 +33,8 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
       text: widget.expense?.description ?? '',
     );
     _selectedDate = widget.expense?.date ?? DateTime.now();
-    _selectedCategory = widget.expense?.category ?? 'Maintenance';
+    // Use the expense category if it exists, otherwise use the first category from the predefined list
+    _selectedCategory = widget.expense?.category ?? Expense.categories.first;
   }
 
   @override
@@ -61,6 +51,11 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
     setState(() => _isLoading = true);
 
     try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
       final expense = Expense(
         id: widget.expense?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
@@ -68,6 +63,7 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
         category: _selectedCategory,
         amount: double.parse(_amountController.text),
         description: _descriptionController.text.trim(),
+        userId: currentUser.id,
       );
 
       if (widget.expense == null) {
@@ -131,7 +127,7 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: const InputDecoration(labelText: 'Category'),
-                items: _categories.map((category) {
+                items: Expense.categories.map((category) {
                   return DropdownMenuItem(
                     value: category,
                     child: Text(category),
@@ -141,6 +137,12 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
                   if (value != null) {
                     setState(() => _selectedCategory = value);
                   }
+                },
+                validator: (value) {
+                  if (value == null || !Expense.categories.contains(value)) {
+                    return 'Please select a valid category';
+                  }
+                  return null;
                 },
               ),
               const SizedBox(height: 16),
@@ -195,4 +197,4 @@ class _AddEditExpenseDialogState extends State<AddEditExpenseDialog> {
       ],
     );
   }
-} 
+}
